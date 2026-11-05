@@ -1405,12 +1405,16 @@ function initThree() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(28, 1, 0.05, 30);
   scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.72));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(2.2, 3.6, 3.2); scene.add(key);
+  key.target.position.set(0, 0.85, 0); scene.add(key.target);
+  key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+  Object.assign(key.shadow.camera, { left: -1.2, right: 1.2, top: 1.3, bottom: -1.3, near: 0.5, far: 12 }); key.shadow.camera.updateProjectionMatrix();
   const fill = new THREE.DirectionalLight(0xe8eeff, 0.32); fill.position.set(-3, 2, 1.5); scene.add(fill);
   const rim = new THREE.DirectionalLight(0xffffff, 0.45); rim.position.set(0.5, 3, -3.5); scene.add(rim);
   figure = new THREE.Group(); scene.add(figure);
   formGroup = new THREE.Group(); dressGroup = new THREE.Group(); figure.add(formGroup, dressGroup);
-  formMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#E6DECF').convertSRGBToLinear(), roughness: 0.92 });
+  formMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color('#EAE3D7').convertSRGBToLinear(), roughness: 0.52, clearcoat: 0.22, clearcoatRoughness: 0.4 });
   fabricTex = new THREE.CanvasTexture(texCanvas); fabricTex.wrapS = fabricTex.wrapT = THREE.RepeatWrapping; fabricTex.encoding = THREE.sRGBEncoding;
   fabricTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   fabricMat = new THREE.MeshPhysicalMaterial({ map: fabricTex, side: THREE.DoubleSide, roughness: 0.8 });
@@ -1421,6 +1425,8 @@ function initThree() {
   sx.fillStyle = g; sx.fillRect(0, 0, 128, 128);
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.002; scene.add(shadow);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = 0.001; floor.receiveShadow = true; scene.add(floor);
   bindOrbit();
   new ResizeObserver(resizeStage).observe(stage);
   resizeStage();
@@ -1489,41 +1495,96 @@ function gridGeometry(rows, cols, P, UV, wrapNormals) {
 }
 function disposeGroup(g) { while (g.children.length) { const c = g.children.pop(); c.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } }
 
+/* Profiled limb: rings from u=0 (bottom, y=0) to u=1 (top, y=len); prof(u) -> {rx, rz, xo, zo} */
+function profileGeometry(len, rows, cols, prof) {
+  const P = new Float32Array((rows + 1) * (cols + 1) * 3);
+  for (let i = 0; i <= rows; i++) {
+    const u = i / rows, p = prof(u);
+    for (let j = 0; j <= cols; j++) {
+      const a = -Math.PI + 2 * Math.PI * j / cols, k = (i * (cols + 1) + j) * 3;
+      P[k] = (p.xo || 0) + p.rx * Math.sin(a); P[k + 1] = u * len; P[k + 2] = (p.zo || 0) + p.rz * Math.cos(a);
+    }
+  }
+  return gridGeometry(rows, cols, P, null, true);
+}
+/* Piecewise-smooth interpolation through [u, value] keys sorted by u */
+function keyed(keys, u) {
+  if (u <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) if (u <= keys[i][0]) { const t = (u - keys[i - 1][0]) / (keys[i][0] - keys[i - 1][0]); return lerp(keys[i - 1][1], keys[i][1], t * t * (3 - 2 * t)); }
+  return keys[keys.length - 1][1];
+}
+function ellipsoid(rx, ry, rz, x, y, z) { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), formMat); m.scale.set(rx, ry, rz); m.position.set(x, y, z); return m; }
+
 function buildForm(B) {
   disposeGroup(formGroup);
-  const s = B.s, m = B.m;
-  // torso
-  const rows = 70, cols = 64, P = new Float32Array((rows + 1) * (cols + 1) * 3);
+  const s = B.s, m = B.m, PI = Math.PI;
+  const g = (x, w) => Math.exp(-(x / w) * (x / w));
+  // Torso. Anatomy is added as small radial changes that stay inside the dress's wearing ease.
+  const rows = 90, cols = 72, P = new Float32Array((rows + 1) * (cols + 1) * 3);
   const y0 = B.crotchY, y1 = B.neckBaseY;
   for (let i = 0; i <= rows; i++) {
     const y = lerp(y0, y1, i / rows), b = bodyAt(B, y);
-    for (let j = 0; j <= cols; j++) { const th = -Math.PI + 2 * Math.PI * j / cols, k = (i * (cols + 1) + j) * 3; P[k] = b.rx * Math.sin(th); P[k + 1] = y; P[k + 2] = b.rz * Math.cos(th) + b.zo; }
+    const bust = g(y - B.bustY, 0.06 * s), blades = g(y - (B.armpitY + 0.02 * s), 0.06 * s), seat = g(y - (B.hipY - 0.01 * s), 0.07 * s);
+    const spine = smooth(B.waistY - 0.05 * s, B.waistY + 0.03 * s, y) * (1 - smooth(B.shoulderY, B.neckBaseY, y));
+    for (let j = 0; j <= cols; j++) {
+      const th = -PI + 2 * PI * j / cols, a = Math.abs(th), ab = PI - a;
+      let k = 1;
+      if (a < PI / 2) k += bust * (0.035 * g(a - 0.42, 0.26) - 0.02 * g(a, 0.1));
+      else k += 0.02 * g(ab - 0.5, 0.25) * blades - 0.012 * g(ab, 0.07) * spine + 0.025 * g(ab - 0.4, 0.4) * seat;
+      const q = (i * (cols + 1) + j) * 3;
+      P[q] = b.rx * Math.sin(th) * k; P[q + 1] = y; P[q + 2] = b.rz * Math.cos(th) * k + b.zo;
+    }
   }
   formGroup.add(new THREE.Mesh(gridGeometry(rows, cols, P, null, true), formMat));
-  const bot = bodyAt(B, y0), cap = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), formMat);
+  const bot = bodyAt(B, y0), cap = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 12, 0, PI * 2, PI / 2, PI / 2), formMat);
   cap.scale.set(bot.rx, 0.04 * s, bot.rz); cap.position.set(0, y0, bot.zo); formGroup.add(cap);
-  // neck and head
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.056 * s, 0.11 * s, 28), formMat); neck.position.set(0, B.neckBaseY + 0.04 * s, -0.008); formGroup.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.1 * s, 32, 24), formMat); head.scale.set(0.82, 1.08, 0.94); head.position.set(0, B.neckBaseY + 0.19 * s, 0.006); formGroup.add(head);
-  // legs
-  const legTop = B.crotchY + 0.05 * s, legLen = legTop - 0.05 * s;
+
+  // Neck, tipped slightly forward, and a head with a jawline
+  const neckLen = 0.115 * s, neck = new THREE.Mesh(profileGeometry(neckLen, 12, 32, u => {
+    const r = lerp(0.06, 0.047, smooth(0, 0.7, u)) * s; return { rx: r, rz: r * 0.94, zo: -0.01 + 0.014 * u * s };
+  }), formMat);
+  neck.position.y = B.neckBaseY - 0.03 * s; formGroup.add(neck);
+  const head = new THREE.Group(); head.position.set(0, B.neckBaseY + 0.18 * s, 0.014 * s); head.rotation.x = -0.06;
+  head.add(ellipsoid(0.083 * s, 0.1 * s, 0.098 * s, 0, 0.018 * s, -0.008 * s));
+  head.add(ellipsoid(0.066 * s, 0.075 * s, 0.078 * s, 0, -0.04 * s, 0.022 * s));
+  formGroup.add(head);
+
+  // Legs: thigh, knee, calf and ankle; standing slightly together
+  const ankleY = 0.08 * s, legTop = B.crotchY + 0.06 * s, legLen = legTop - ankleY;
+  const thighR = clamp(m.hip * 0.58 / (2 * PI) / 100, 0.07, 0.13), kneeU = clamp((B.kneeY - ankleY) / legLen, 0.3, 0.6), calfU = kneeU * 0.6;
+  const rKeys = [[0, 0.031 * s], [0.07, 0.033 * s], [calfU, 0.058 * s], [kneeU - 0.04, 0.05 * s], [kneeU, 0.049 * s], [kneeU + 0.12, 0.058 * s], [0.82, thighR * 0.88], [1, thighR]];
   for (const sx of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(B.hx * 0.38, 0.034 * s, legLen, 28), formMat);
-    leg.position.set(sx * B.hx * 0.47, legTop - legLen / 2, -0.005); leg.rotation.z = sx * 0.02; formGroup.add(leg);
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), formMat); foot.scale.set(0.036 * s, 0.03 * s, 0.1 * s); foot.position.set(sx * B.hx * 0.5, 0.03 * s, 0.04 * s); formGroup.add(foot);
+    const topX = sx * B.hx * 0.48, footX = sx * 0.075 * s;
+    const leg = new THREE.Mesh(profileGeometry(legLen, 56, 36, u => {
+      const r = keyed(rKeys, u);
+      return { rx: r * 0.92, rz: r, xo: lerp(footX, topX, Math.pow(u, 0.9)), zo: -0.012 * s * g(u - calfU, 0.12) + 0.006 * s * g(u - kneeU, 0.05) - 0.004 };
+    }), formMat);
+    leg.position.y = ankleY; formGroup.add(leg);
+    formGroup.add(ellipsoid(0.032 * s, 0.032 * s, 0.045 * s, footX, 0.045 * s, -0.012 * s));
+    formGroup.add(ellipsoid(0.04 * s, 0.026 * s, 0.1 * s, footX, 0.028 * s, 0.05 * s));
   }
-  // arms
-  const armLen = m.arm / 100, rTop = m.upperArm / (2 * Math.PI) / 100, rBot = 0.027 * s;
+
+  // Arms: shoulder, elbow, forearm and wrist, along the same line the sleeves follow
+  const armLen = m.arm / 100, rTop = m.upperArm / (2 * PI) / 100, rBot = 0.027 * s;
   B.arm = { len: armLen, rTop, rBot, angle: deg(9), joint: [B.shR - rTop * 1.05, B.shoulderY - 0.02 * s] };
+  const elbowU = 0.53, aKeys = [[0, 0.9], [0.06, 0.93], [0.36, 1.03], [elbowU, 0.86], [0.7, 0.98], [0.88, 0.97], [1, 1]];
   for (const sx of [-1, 1]) {
     const grp = new THREE.Group(); grp.position.set(sx * B.arm.joint[0], B.arm.joint[1], -0.004); grp.rotation.z = sx * B.arm.angle;
-    const geo = new THREE.CylinderGeometry(rTop, rBot, armLen, 28); geo.translate(0, -armLen / 2, 0);
-    grp.add(new THREE.Mesh(geo, formMat));
-    const j = new THREE.Mesh(new THREE.SphereGeometry(rTop, 24, 16), formMat); grp.add(j);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), formMat); hand.scale.set(0.022 * s, 0.07 * s, 0.04 * s); hand.position.y = -armLen - 0.05 * s; grp.add(hand);
+    const arm = new THREE.Mesh(profileGeometry(armLen, 48, 32, u => {
+      const r = lerp(rBot, rTop, u) * keyed(aKeys, u);
+      return { rx: r * 0.92, rz: r, zo: -0.004 * s * g(u - elbowU, 0.06) };
+    }), formMat);
+    arm.position.y = -armLen; grp.add(arm);
+    grp.add(new THREE.Mesh(new THREE.SphereGeometry(rTop * 1.02, 24, 16), formMat));
+    const hy = -armLen;
+    grp.add(ellipsoid(0.021 * s, 0.05 * s, 0.04 * s, 0, hy - 0.042 * s, 0.002 * s));
+    grp.add(ellipsoid(0.016 * s, 0.047 * s, 0.033 * s, sx * -0.003 * s, hy - 0.1 * s, 0.01 * s));
+    const thumb = ellipsoid(0.011 * s, 0.03 * s, 0.012 * s, sx * -0.008 * s, hy - 0.05 * s, 0.034 * s); thumb.rotation.x = 0.35; grp.add(thumb);
     formGroup.add(grp);
   }
+  castShadows(formGroup);
 }
+function castShadows(group) { group.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); }
 
 const FABRIC_LOOK = {
   cotton: { roughness: 0.82, clearcoat: 0, dark: 1 }, linen: { roughness: 0.93, clearcoat: 0, dark: 1 }, crepe: { roughness: 0.78, clearcoat: 0, dark: 1 },
@@ -1641,6 +1702,7 @@ function rebuildScene() {
   if (fk !== formKey) { buildForm(G.B); formKey = fk; } else G.B.arm = lastArm;
   lastArm = G.B.arm;
   buildDress(G, design);
+  castShadows(dressGroup);
 }
 let lastArm = null;
 
