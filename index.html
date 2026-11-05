@@ -1,0 +1,2007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Muslin Studio</title>
+<meta name="description" content="Design dresses on a 3D dress form, generate fabric prints and printable sewing patterns from your measurements.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171B24" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Muslin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;1,6..96,500&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: a cutting-room table. Controls on the left, the dress form in the middle,
+   the assistant on the right; patterns are drawn on dotted pattern paper. */
+:root{
+  --paper:#F4F5F8; --panel:#FFFFFF; --ink:#171E2C; --muted:#5B6476; --line:#DDE1E8; --line-strong:#B7BFCC;
+  --accent:#2C46CF; --accent-soft:#E7EBFC; --accent-ink:#FFFFFF; --pin:#C9243A; --ok:#1C7550;
+  --stage-a:#FFFFFF; --stage-b:#E3E7EE; --dot:#C3CBD8; --sheet:#FBFBFD; --shadow:0 1px 2px rgba(23,30,44,.06),0 8px 24px rgba(23,30,44,.06);
+  --f-display:'Bodoni Moda','Didot','Bodoni 72',Georgia,serif;
+  --f-body:'Instrument Sans','Helvetica Neue',Arial,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10131A; --panel:#171B24; --ink:#E6E9F0; --muted:#98A1B2; --line:#262C37; --line-strong:#3A4251;
+    --accent:#8DA0FF; --accent-soft:#222A47; --accent-ink:#0E1220; --pin:#FF6378; --ok:#5CC28D;
+    --stage-a:#212734; --stage-b:#0E1117; --dot:#2E3645; --sheet:#141821; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10131A; --panel:#171B24; --ink:#E6E9F0; --muted:#98A1B2; --line:#262C37; --line-strong:#3A4251;
+  --accent:#8DA0FF; --accent-soft:#222A47; --accent-ink:#0E1220; --pin:#FF6378; --ok:#5CC28D;
+  --stage-a:#212734; --stage-b:#0E1117; --dot:#2E3645; --sheet:#141821; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+html,body{height:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.brand b{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:24px;letter-spacing:-.01em}
+.brand span{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.views{display:flex;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:3px}
+.views button{border:0;background:transparent;padding:6px 14px;border-radius:7px;font-weight:500;color:var(--muted)}
+.views button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.docbar{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.name-wrap{position:relative;display:flex;align-items:center;min-width:0}
+#designName{border:1px solid transparent;background:transparent;font-family:var(--f-display);font-size:18px;padding:4px 8px;border-radius:6px;width:min(260px,50vw);text-overflow:ellipsis}
+#designName:hover{border-color:var(--line)}
+#designName:focus{border-color:var(--accent);outline:none;background:var(--panel)}
+.dirty-dot{width:7px;height:7px;border-radius:50%;background:var(--pin);margin-left:2px;flex:none}
+.btn{border:1px solid var(--line-strong);background:var(--panel);padding:7px 12px;border-radius:8px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default;border-color:var(--line-strong)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{border-color:var(--line)}
+.btn.small{padding:5px 9px;font-size:13px}
+.btn.danger{color:var(--pin);border-color:var(--pin)}
+.icon{width:16px;height:16px;flex:none}
+
+main{flex:1;min-height:0;position:relative}
+.view{height:100%}
+
+/* Studio */
+.studio{display:grid;grid-template-columns:320px minmax(0,1fr);height:100%}
+.panel{background:var(--panel);min-height:0;display:flex;flex-direction:column}
+.controls{border-right:1px solid var(--line)}
+.chat{border-left:1px solid var(--line)}
+.tabs{display:flex;gap:2px;padding:10px 12px 0;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:transparent;padding:8px 10px 9px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.scroll{overflow:auto;min-height:0;flex:1}
+.pane{padding:14px 16px 24px;display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:8px}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.label output,.label .val{font-family:var(--f-mono);letter-spacing:0;text-transform:none;font-weight:400;color:var(--ink);font-size:12px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line-strong);background:transparent;padding:5px 11px;border-radius:999px;font-size:13px}
+.seg button:hover{border-color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.swatch-row{display:flex;gap:10px;align-items:center}
+.swatch-row label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);border-radius:8px;padding:2px;background:var(--panel)}
+.palettes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.palettes button{border:1px solid var(--line);border-radius:8px;padding:0;height:26px;overflow:hidden;display:flex;background:none}
+.palettes button span{flex:1}
+.palettes button:hover{border-color:var(--ink)}
+.preview-tile{width:100%;aspect-ratio:3/1;max-width:100%;border-radius:8px;border:1px solid var(--line);display:block}
+.sleeve-tune{display:flex;flex-direction:column;gap:12px;padding:12px;margin-top:4px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.meas{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.meas label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+.meas input,.select{border:1px solid var(--line-strong);border-radius:8px;padding:7px 9px;background:var(--panel);font-family:var(--f-mono);font-size:13px;width:100%;min-width:0}
+.hint{font-size:12.5px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Stage */
+.stage{position:relative;min-width:0;min-height:0;background:radial-gradient(120% 90% at 50% 30%,var(--stage-a),var(--stage-b));overflow:hidden;touch-action:none}
+.stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.spec{position:absolute;left:16px;top:14px;right:16px;display:flex;flex-direction:column;gap:2px;pointer-events:none}
+.spec h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:26px;line-height:1.1;text-wrap:balance}
+.spec p{margin:0;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.stage-tools{position:absolute;left:16px;bottom:14px;right:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stage-tools .seg button{background:var(--panel)}
+.stage-tools .seg button[aria-pressed="true"]{background:var(--ink)}
+.stage-note{margin-left:auto;font-size:12px;color:var(--muted)}
+.webgl-fail{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);pointer-events:none}
+
+/* Chat */
+.chat-head{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.chat-head h3{margin:0;font-size:15px;font-weight:600}
+.chat-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.msgs{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.note{align-self:stretch;max-width:none;background:transparent;border:1px dashed var(--line-strong);color:var(--muted);font-size:13px}
+.changes{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.changes span{font-size:11.5px;font-family:var(--f-mono);background:var(--accent-soft);color:var(--ink);padding:2px 7px;border-radius:999px}
+.thinking::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+@media (prefers-reduced-motion: reduce){.thinking::after{animation:none;content:"..."}}
+.suggest{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px}
+.suggest button{border:1px solid var(--line-strong);background:transparent;border-radius:999px;padding:5px 10px;font-size:12.5px;text-align:left}
+.suggest button:hover{border-color:var(--accent);color:var(--accent)}
+.composer{border-top:1px solid var(--line);padding:10px 12px 12px;display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line-strong);border-radius:10px;padding:8px 10px;background:var(--panel);max-height:140px;min-height:40px}
+
+/* Patterns view */
+.scroll-view{height:100%;overflow:auto}
+.wrap{padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
+.subtabs{display:flex;gap:4px;margin-bottom:16px}
+.subtabs button{border:1px solid var(--line-strong);background:transparent;border-radius:999px;padding:6px 14px;font-weight:500}
+.subtabs button[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.pattern-grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card h3{margin:0;font-family:var(--f-display);font-weight:500;font-size:22px}
+.pieces{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pieces li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.pieces li:first-child{border-top:0}
+.pieces .pid{font-family:var(--f-display);font-size:18px;color:var(--accent)}
+.pieces .cut{font-size:12px;color:var(--muted);text-align:right}
+.yard{font-family:var(--f-display);font-size:34px;line-height:1}
+.yard small{font-family:var(--f-body);font-size:13px;color:var(--muted);display:block;margin-top:6px;line-height:1.4}
+.sheet-wrap{background:var(--sheet);border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:calc(100vh - 200px);min-height:360px;position:relative}
+.sheet-tools{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.sheet-wrap svg{display:block;margin:16px}
+.sheet-wrap .cut{fill:var(--panel);stroke:var(--ink);stroke-width:1.4}
+.sheet-wrap .stitch{fill:none;stroke:var(--accent);stroke-width:1;stroke-dasharray:5 4}
+.sheet-wrap .dart{fill:none;stroke:var(--pin);stroke-width:1.1}
+.sheet-wrap .grain{fill:none;stroke:var(--ink);stroke-width:1}
+.sheet-wrap .arrow{fill:var(--ink);stroke:none}
+.sheet-wrap .notch{fill:none;stroke:var(--ink);stroke-width:1.3}
+.sheet-wrap .fold{fill:none;stroke:var(--pin);stroke-width:1.2}
+.sheet-wrap .foldline{fill:none;stroke:var(--pin);stroke-width:1.4;stroke-dasharray:8 5}
+.sheet-wrap .fabric{fill:url(#dots);stroke:var(--line-strong);stroke-width:1}
+.sheet-wrap .dotmark{fill:var(--ink)}
+.sheet-wrap text{fill:var(--ink);font-family:var(--f-body);paint-order:stroke;stroke:var(--panel);stroke-width:3px;stroke-linejoin:round}
+.sheet-wrap text.muted{fill:var(--muted)}
+.sheet-wrap text.pin{fill:var(--pin)}
+.sheet-wrap text.pid{font-family:var(--f-display);fill:var(--accent)}
+.export-btns{display:flex;flex-direction:column;gap:8px}
+.export-btns .btn{justify-content:flex-start}
+.warn{font-size:13px;color:var(--pin)}
+
+/* Prints view */
+.print-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.print-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:8px;display:flex;flex-direction:column;gap:8px;text-align:left}
+.print-card:hover{border-color:var(--ink)}
+.print-card[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.print-card canvas{width:100%;aspect-ratio:1;border-radius:8px;display:block;max-width:100%}
+.print-card span{font-size:12.5px;color:var(--muted);padding:0 2px 2px}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
+.section-title h2{margin:0;font-family:var(--f-display);font-weight:500;font-size:26px}
+
+/* Library */
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.lib-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.lib-card .thumb{aspect-ratio:4/5;background:radial-gradient(120% 90% at 50% 30%,var(--stage-a),var(--stage-b));display:grid;place-items:center;max-width:100%}
+.lib-card .thumb img{width:100%;height:100%;object-fit:cover}
+.lib-card .thumb canvas{width:60%;aspect-ratio:1;border-radius:50%}
+.lib-card .meta{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.lib-card h4{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.lib-card .sub{font-size:12px;color:var(--muted)}
+.tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--accent)}
+.empty{border:1px dashed var(--line-strong);border-radius:12px;padding:28px;text-align:center;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow);z-index:20;max-width:calc(100% - 32px)}
+
+@media (max-width: 1100px){
+  .studio{grid-template-columns:280px minmax(0,1fr)}
+  .chat{grid-column:1 / -1;border-left:0;border-top:1px solid var(--line);height:420px}
+  .studio{grid-template-rows:minmax(0,1fr) auto;height:auto;min-height:100%}
+  .controls{max-height:calc(100vh - 70px)}
+  .stage{min-height:560px}
+  main{overflow:visible}
+  body{overflow:auto}
+  #app{height:auto;min-height:100%}
+  .view{height:auto}
+  .scroll-view{height:auto;overflow:visible}
+  .sheet-wrap{max-height:70vh}
+}
+@media (max-width: 760px){
+  .studio{grid-template-columns:minmax(0,1fr)}
+  .stage{order:-1;min-height:300px;height:48vh;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;border-bottom:1px solid var(--line)}
+  .stage .spec h2{font-size:18px}
+  .stage .spec p{font-size:11px}
+  .stage-note{display:none}
+  input,select,textarea,.meas input,.select{font-size:16px}
+  .controls{border-right:0;max-height:none}
+  .controls .scroll{overflow:visible}
+  .pattern-grid{grid-template-columns:minmax(0,1fr)}
+  .docbar{margin-left:0;width:100%}
+  #designName{width:100%}
+  .name-wrap{flex:1}
+  .spec h2{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><b>Muslin</b><span>Studio</span></div>
+    <div class="views" role="tablist" aria-label="Views">
+      <button role="tab" id="tab-studio" aria-selected="true" data-view="studio">Studio</button>
+      <button role="tab" id="tab-patterns" aria-selected="false" data-view="patterns">Patterns</button>
+      <button role="tab" id="tab-library" aria-selected="false" data-view="library">Library</button>
+    </div>
+    <div class="docbar">
+      <div class="name-wrap"><input id="designName" aria-label="Design name" maxlength="60"><span class="dirty-dot" id="dirtyDot" title="Unsaved changes" hidden></span></div>
+      <button class="btn ghost small" id="undoBtn" title="Undo" aria-label="Undo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="btn ghost small" id="redoBtn" title="Redo" aria-label="Redo"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      <button class="btn" id="newBtn">New</button>
+      <button class="btn primary" id="saveBtn">Save</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- STUDIO -->
+    <section class="view studio" id="view-studio">
+      <aside class="panel controls" aria-label="Design controls">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-pane="shape">Shape</button>
+          <button role="tab" aria-selected="false" data-pane="fabric">Fabric &amp; print</button>
+          <button role="tab" aria-selected="false" data-pane="fit">Fit</button>
+        </div>
+        <div class="scroll">
+          <div class="pane" data-pane="shape">
+            <div class="field"><div class="label">Silhouette</div><div class="seg" data-key="silhouette"></div></div>
+            <div class="field"><div class="label">Neckline</div><div class="seg" data-key="neckline"></div>
+              <p class="hint" id="neckStraplessHint" hidden>Strapless dresses use the style for the top edge. Depth, width and back settings apply when the dress has shoulders.</p>
+              <div class="sleeve-tune" id="neckTune">
+                <div class="field"><div class="label">Front depth <output id="nkDepthVal"></output></div><input type="range" id="nkDepth" min="1.5" max="32" step="0.5" aria-label="Front neckline depth"></div>
+                <div class="field"><div class="label">Width <output id="nkWidthVal"></output></div><input type="range" id="nkWidth" min="10" max="34" step="0.5" aria-label="Neckline width"></div>
+                <div class="field"><div class="label">Shape <output id="nkCurveVal"></output></div><input type="range" id="nkCurve" min="0" max="100" step="1" aria-label="Neckline shape"></div>
+                <div class="field"><div class="label">Back depth <output id="nkBackDepthVal"></output></div><input type="range" id="nkBackDepth" min="1.5" max="32" step="0.5" aria-label="Back neckline depth"></div>
+                <div class="row" style="justify-content:space-between">
+                  <div class="seg" id="backSeg" aria-label="Back neckline shape"><button type="button" data-b="round">Round back</button><button type="button" data-b="v">V back</button><button type="button" data-b="square">Square back</button></div>
+                  <button class="btn small ghost" type="button" id="nkReset">Reset</button>
+                </div>
+              </div>
+            </div>
+            <div class="field"><div class="label">Sleeves</div><div class="seg" data-key="sleeves"></div>
+              <div class="sleeve-tune" id="sleeveTune">
+                <div class="field"><div class="label">Length <output id="slLenVal"></output></div><input type="range" id="slLen" min="8" max="100" step="1" aria-label="Sleeve length"></div>
+                <div class="field"><div class="label">Puff at the cap <output id="slPuffVal"></output></div><input type="range" id="slPuff" min="0" max="100" step="1" aria-label="Puff at the cap"></div>
+                <div class="field"><div class="label">Flare at the hem <output id="slFlareVal"></output></div><input type="range" id="slFlare" min="0" max="100" step="1" aria-label="Flare at the hem"></div>
+                <div class="field"><div class="label">Fullness above the hem <output id="slGatherVal"></output></div><input type="range" id="slGather" min="0" max="100" step="1" aria-label="Fullness above the hem"></div>
+                <div class="row" style="justify-content:space-between">
+                  <div class="seg" id="cuffSeg" aria-label="Cuff"><button type="button" data-c="none">No cuff</button><button type="button" data-c="band">Cuff band</button></div>
+                  <button class="btn small ghost" type="button" id="slReset">Reset</button>
+                </div>
+              </div>
+            </div>
+            <div class="field"><div class="label">Waistline</div><div class="seg" data-key="waist"></div></div>
+            <div class="field"><div class="label">Length <span class="val" id="lenVal"></span></div><div class="seg" data-key="length"></div></div>
+            <div class="field"><div class="label">Skirt fullness <output id="fullVal"></output></div><input type="range" id="fullness" min="0" max="100" step="1"></div>
+          </div>
+          <div class="pane" data-pane="fabric" hidden>
+            <div class="field"><div class="label">Fabric</div><div class="seg" data-key="fabric"></div></div>
+            <div class="field"><div class="label">Print</div><div class="seg" data-key="print.type"></div></div>
+            <canvas class="preview-tile" id="previewTile" width="600" height="200" aria-label="Print preview"></canvas>
+            <div class="field"><div class="label">Colors</div>
+              <div class="swatch-row">
+                <label>Ground<input type="color" id="cBase"></label>
+                <label>Ink 1<input type="color" id="cInk1"></label>
+                <label>Ink 2<input type="color" id="cInk2"></label>
+                <button class="btn small" id="shuffleBtn" style="margin-left:auto">Shuffle layout</button>
+              </div>
+              <div class="palettes" id="palettes"></div>
+            </div>
+            <div class="field"><div class="label">Repeat size <output id="scaleVal"></output></div><input type="range" id="pScale" min="4" max="40" step="1"></div>
+            <div class="field"><div class="label">Density <output id="densVal"></output></div><input type="range" id="pDens" min="0" max="100" step="1"></div>
+            <button class="btn" id="morePrints">Generate more prints</button>
+          </div>
+          <div class="pane" data-pane="fit" hidden>
+            <p class="hint">The dress form and the sewing pattern both follow these measurements.</p>
+            <div class="row">
+              <div class="seg" id="unitSeg"><button data-u="in">Inches</button><button data-u="cm">Centimeters</button></div>
+            </div>
+            <div class="field"><div class="label">Start from a size</div>
+              <select class="select" id="sizePreset" aria-label="Size preset">
+                <option value="">Choose a size…</option>
+                <option value="4">US 4 (approx.)</option><option value="8">US 8 (approx.)</option><option value="12">US 12 (approx.)</option><option value="16">US 16 (approx.)</option><option value="20">US 20 (approx.)</option>
+              </select>
+            </div>
+            <div class="meas" id="measGrid"></div>
+            <div class="field"><div class="label">Wearing ease</div><div class="seg" data-key="fit"></div><p class="hint" id="easeHint"></p></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="stage" id="stage">
+        <div class="spec"><h2 id="specTitle"></h2><p id="specLine"></p></div>
+        <div class="stage-tools">
+          <div class="seg" id="viewSeg"><button data-yaw="0">Front</button><button data-yaw="90">Side</button><button data-yaw="180">Back</button></div>
+          <button class="btn small" id="spinBtn" aria-pressed="false">Turntable</button>
+          <span class="stage-note">Drag to turn · scroll or pinch to zoom</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- PATTERNS -->
+    <section class="view scroll-view" id="view-patterns" hidden>
+      <div class="wrap">
+        <div class="subtabs" role="tablist">
+          <button role="tab" aria-selected="true" data-sub="sewing">Sewing pattern</button>
+          <button role="tab" aria-selected="false" data-sub="prints">Fabric prints</button>
+        </div>
+        <div data-subpane="sewing">
+          <div class="pattern-grid">
+            <div class="card">
+              <h3 id="patTitle">Pattern pieces</h3>
+              <p class="hint" id="patSummary"></p>
+              <ul class="pieces" id="pieceList"></ul>
+              <div class="field"><div class="label">Fabric width</div>
+                <div class="seg" id="fabWSeg"><button data-w="112">44 in</button><button data-w="137">54 in</button><button data-w="150">60 in</button></div></div>
+              <div class="field"><div class="label">Seam allowance</div>
+                <div class="seg" id="saSeg"><button data-sa="1">1 cm (⅜ in)</button><button data-sa="1.5">1.5 cm (⅝ in)</button></div></div>
+              <div class="yard" id="yardage"></div>
+              <p class="warn" id="patWarn" hidden></p>
+              <div class="field"><div class="label">Download</div>
+                <div class="export-btns">
+                  <button class="btn" data-export="letter">Tiled PDF · US Letter</button>
+                  <button class="btn" data-export="a4">Tiled PDF · A4</button>
+                  <button class="btn" data-export="svg">Full-size SVG (plotter / copy shop)</button>
+                </div>
+                <p class="hint">Print at 100% (actual size) and check the 10 cm and 4 in squares on the first page.</p>
+              </div>
+            </div>
+            <div class="card" style="padding:12px">
+              <div class="sheet-tools">
+                <span class="hint">Cutting layout on folded fabric. Grainlines run with the selvage.</span>
+                <div class="row"><button class="btn small" id="zoomOut" aria-label="Zoom out">−</button><span class="hint" id="zoomVal" style="font-family:var(--f-mono)"></span><button class="btn small" id="zoomIn" aria-label="Zoom in">+</button></div>
+              </div>
+              <div class="sheet-wrap" id="sheetWrap"></div>
+            </div>
+          </div>
+        </div>
+        <div data-subpane="prints" hidden>
+          <div class="section-title"><h2>Variations</h2><div class="row"><button class="btn" id="regenPrints">New variations</button><button class="btn" id="dlTile">Download tile (PNG)</button></div></div>
+          <p class="hint" style="margin:-4px 0 14px">Each print tiles seamlessly. Pick one to put it on the dress.</p>
+          <div class="print-grid" id="printVariations"></div>
+          <div class="section-title" style="margin-top:28px"><h2>Every print type</h2></div>
+          <div class="print-grid" id="printTypes"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIBRARY -->
+    <section class="view scroll-view" id="view-library" hidden>
+      <div class="wrap">
+        <div class="section-title"><h2>Your designs</h2>
+          <div class="row">
+            <button class="btn" id="saveCopyBtn">Save as copy</button>
+            <button class="btn" id="exportJsonBtn">Export design file</button>
+            <label class="btn" for="importFile" style="cursor:pointer">Import design file</label>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+          </div>
+        </div>
+        <p class="hint" id="libStatus" style="margin:-4px 0 14px"></p>
+        <div class="lib-grid" id="libGrid"></div>
+        <div class="section-title" style="margin-top:32px"><h2>Starters</h2><span class="hint">Examples to build from</span></div>
+        <div class="lib-grid" id="starterGrid"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+
+<script>
+/* =====================================================================
+   PLATFORM ADAPTER — standalone web version
+   Designs are kept in this browser's IndexedDB. Files are handed to the
+   iPhone share sheet when available, otherwise downloaded with a link.
+   ===================================================================== */
+const Platform = (() => {
+  const DB_NAME = 'muslin-studio', STORE = 'designs';
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let dbp = null; const listeners = new Set();
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise((res, rej) => {
+      try {
+        const rq = indexedDB.open(DB_NAME, 1);
+        rq.onupgradeneeded = () => rq.result.createObjectStore(STORE, { keyPath: 'id' });
+        rq.onsuccess = () => res(rq.result);
+        rq.onerror = () => rej({ code: 'unavailable' });
+      } catch (e) { rej({ code: 'unavailable' }); }
+    });
+    dbp.catch(() => { dbp = null; });
+    return dbp;
+  }
+  function tx(mode, fn) {
+    return open().then(db => new Promise((res, rej) => {
+      const t = db.transaction(STORE, mode), req = fn(t.objectStore(STORE));
+      t.oncomplete = () => res(req && req.result);
+      t.onerror = t.onabort = () => rej({ code: t.error && t.error.name === 'QuotaExceededError' ? 'quota_exceeded' : 'unavailable' });
+    }));
+  }
+  const all = () => tx('readonly', st => st.getAll());
+  async function notify() { const rows = await all(); listeners.forEach(fn => fn(rows, false)); }
+  const TYPES = { svg: 'image/svg+xml', pdf: 'application/pdf', png: 'image/png', json: 'application/json' };
+  return {
+    isIOS, standalone,
+    async chatAvailable() { return false; },
+    async libraryAvailable() { try { await open(); return true; } catch (e) { return false; } },
+    async watchLibrary(onList, onError) {
+      listeners.add(onList);
+      try { onList(await all(), false); } catch (e) { onError && onError(e); }
+      try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+      return () => listeners.delete(onList);
+    },
+    async saveDesign(id, data) {
+      const rec = { ...data, id: id || 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) };
+      await tx('readwrite', st => st.put(rec)); notify(); return rec.id;
+    },
+    async deleteDesign(id) { await tx('readwrite', st => st.delete(id)); notify(); },
+    async saveFile(filename, data) {
+      const type = TYPES[filename.split('.').pop().toLowerCase()] || 'application/octet-stream';
+      const blob = new Blob([data], { type });
+      if (isIOS && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type });
+          if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+        } catch (e) { if (e && e.name === 'AbortError') throw { code: 'declined' }; }
+      }
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  };
+})();
+</script>
+
+<script>
+/* =====================================================================
+   DESIGN MODEL — options, body model, garment geometry, pattern drafting
+   ===================================================================== */
+const OPTS = {
+  silhouette: [['sheath','Sheath'],['aline','A-line'],['fitflare','Fit & flare'],['ballgown','Ballgown'],['mermaid','Mermaid'],['shift','Shift']],
+  neckline: [['jewel','Jewel'],['crew','Crew'],['scoop','Scoop'],['u','U-neck'],['boat','Boat'],['portrait','Portrait'],['v','V-neck'],['plunge','Plunge'],['sweetheart','Sweetheart'],['square','Square']],
+  sleeves: [['strapless','Strapless'],['sleeveless','Sleeveless'],['cap','Cap'],['flutter','Flutter'],['short','Short'],['puff','Puff'],['elbow','Elbow'],['three','Three-quarter'],['bell','Bell'],['long','Long'],['bishop','Bishop']],
+  waist: [['empire','Empire'],['natural','Natural'],['drop','Dropped']],
+  length: [['mini','Mini'],['knee','Knee'],['midi','Midi'],['tea','Tea'],['maxi','Maxi']],
+  fabric: [['cotton','Cotton poplin'],['linen','Linen'],['crepe','Crepe'],['silk','Silk charmeuse'],['satin','Duchess satin'],['velvet','Velvet']],
+  'print.type': [['solid','Solid'],['polka','Polka dot'],['stripe','Stripe'],['gingham','Gingham'],['floral','Floral'],['botanical','Botanical'],['geometric','Geometric'],['abstract','Abstract']],
+  fit: [['close','Close'],['standard','Standard'],['relaxed','Relaxed']]
+};
+const labelOf = (key, v) => (OPTS[key].find(o => o[0] === v) || [, v])[1];
+/* Sleeve styles are starting points; every sleeve is described by these five settings.
+   length: % of arm length · puff: fullness at the cap · flare: width at the hem · gather: fullness above the cuff */
+const SLEEVE_PRESETS = {
+  strapless: { length: 12, puff: 0, flare: 20, gather: 0, cuff: 'none' }, sleeveless: { length: 12, puff: 0, flare: 20, gather: 0, cuff: 'none' },
+  cap: { length: 12, puff: 0, flare: 25, gather: 0, cuff: 'none' }, flutter: { length: 24, puff: 0, flare: 90, gather: 0, cuff: 'none' },
+  short: { length: 38, puff: 0, flare: 8, gather: 0, cuff: 'none' }, puff: { length: 30, puff: 75, flare: 0, gather: 55, cuff: 'band' },
+  elbow: { length: 58, puff: 0, flare: 4, gather: 0, cuff: 'none' }, three: { length: 76, puff: 0, flare: 6, gather: 0, cuff: 'none' },
+  bell: { length: 80, puff: 0, flare: 80, gather: 0, cuff: 'none' }, long: { length: 100, puff: 0, flare: 0, gather: 0, cuff: 'none' },
+  bishop: { length: 100, puff: 0, flare: 0, gather: 75, cuff: 'band' }
+};
+const SLEEVE_KEYS = ['length', 'puff', 'flare', 'gather'];
+/* Neckline styles are starting points. depth, width and backDepth are in cm, measured from the
+   shoulder seam at the neck; width is straight across the front; curve shapes the line (meaning depends on family). */
+const NECK_PRESETS = {
+  jewel: { family: 'round', depth: 6, width: 12.5, backDepth: 2, curve: 50, back: 'round' },
+  crew: { family: 'round', depth: 8.5, width: 14, backDepth: 2.5, curve: 50, back: 'round' },
+  scoop: { family: 'round', depth: 14, width: 19, backDepth: 6, curve: 45, back: 'round' },
+  u: { family: 'round', depth: 18, width: 16, backDepth: 6, curve: 90, back: 'round' },
+  boat: { family: 'round', depth: 3.5, width: 28, backDepth: 2.5, curve: 15, back: 'round' },
+  portrait: { family: 'round', depth: 10, width: 31, backDepth: 9, curve: 35, back: 'round' },
+  v: { family: 'v', depth: 19, width: 16, backDepth: 6, curve: 15, back: 'round' },
+  plunge: { family: 'v', depth: 27, width: 14, backDepth: 8, curve: 10, back: 'v' },
+  sweetheart: { family: 'sweetheart', depth: 17, width: 22, backDepth: 6, curve: 50, back: 'round' },
+  square: { family: 'square', depth: 12.5, width: 19, backDepth: 6, curve: 20, back: 'square' }
+};
+const NECK_KEYS = [['depth', 1.5, 32], ['width', 10, 34], ['backDepth', 1.5, 32], ['curve', 0, 100]];
+const neckFamily = (d) => (NECK_PRESETS[d.neckline] || NECK_PRESETS.crew).family;
+const neckAdjusted = (d) => { const p = NECK_PRESETS[d.neckline]; return !!p && (NECK_KEYS.some(([k]) => Math.abs(p[k] - d.neck[k]) > 0.01) || p.back !== d.neck.back); };
+const sleeveAdjusted = (d) => { const p = SLEEVE_PRESETS[d.sleeves]; return !!p && (SLEEVE_KEYS.some(k => Math.round(p[k]) !== Math.round(d.sleeve[k])) || p.cuff !== d.sleeve.cuff); };
+const EASE = { close: { b: 5, w: 2.5, h: 4 }, standard: { b: 8, w: 5, h: 6 }, relaxed: { b: 12, w: 10, h: 10 } };
+const MEAS_FIELDS = [
+  ['height','Height',140,200], ['bust','Bust',70,150], ['waist','Waist',50,140], ['hip','Hip',75,160],
+  ['shoulder','Shoulder width',30,50], ['backWaist','Back waist length',32,50], ['arm','Arm length',45,70], ['upperArm','Upper arm',20,50]
+];
+const DEFAULT_MEAS = { height: 168, bust: 91, waist: 74, hip: 99, shoulder: 39, backWaist: 41, arm: 58, upperArm: 28 };
+const SIZES = {
+  '4': { bust: 84, waist: 66, hip: 91, shoulder: 37.5, upperArm: 26 },
+  '8': { bust: 89, waist: 71, hip: 96.5, shoulder: 38.5, upperArm: 27.5 },
+  '12': { bust: 96.5, waist: 78.5, hip: 104, shoulder: 40, upperArm: 29.5 },
+  '16': { bust: 104, waist: 86.5, hip: 112, shoulder: 41.5, upperArm: 32 },
+  '20': { bust: 115, waist: 98, hip: 122, shoulder: 43, upperArm: 35.5 }
+};
+const PALETTES = [
+  ['Midnight garden','#1F3A5F','#F2B5C4','#7FB48A'], ['Buttercream','#F6ECD2','#E2A93B','#5A7D5A'],
+  ['Riviera','#F4F7FB','#1D4E89','#E85D4A'], ['Blush','#F7DFE2','#B8425A','#6D8B74'],
+  ['Ink & ivory','#FAF7F0','#1B1F2A','#9AA4B5'], ['Citrus','#FFF6D6','#F08A24','#2F7D6D'],
+  ['Noir','#151515','#D9C27A','#7A1F2B'], ['Seafoam','#D7EFE8','#2B6C7F','#F2C14E']
+];
+function defaultDesign() {
+  return {
+    v: 1, name: 'Garden party dress', silhouette: 'aline', neckline: 'sweetheart', sleeves: 'cap', waist: 'natural',
+    length: 'midi', fullness: 45, fabric: 'cotton', fit: 'standard',
+    print: { type: 'floral', base: '#1F3A5F', ink1: '#F2B5C4', ink2: '#7FB48A', scale: 14, density: 55, seed: 7 },
+    measurements: { ...DEFAULT_MEAS }, units: 'in'
+  };
+}
+const STARTERS = [
+  { tag: 'Example', design: { ...defaultDesign() } },
+  { tag: 'Example', design: { ...defaultDesign(), name: 'Opera ballgown', silhouette: 'ballgown', neckline: 'sweetheart', sleeves: 'strapless', length: 'maxi', fullness: 80, fabric: 'satin', print: { type: 'solid', base: '#5B1A2E', ink1: '#D9C27A', ink2: '#7A1F2B', scale: 12, density: 50, seed: 3 } } },
+  { tag: 'Example', design: { ...defaultDesign(), name: 'Everyday sheath', silhouette: 'sheath', neckline: 'boat', sleeves: 'elbow', length: 'knee', fullness: 20, fabric: 'crepe', print: { type: 'gingham', base: '#FAF7F0', ink1: '#1B1F2A', ink2: '#9AA4B5', scale: 6, density: 45, seed: 11 } } },
+  { tag: 'Example', design: { ...defaultDesign(), name: 'Seaside wrap of stripes', silhouette: 'fitflare', neckline: 'v', sleeves: 'puff', length: 'tea', fullness: 60, fabric: 'linen', print: { type: 'stripe', base: '#F4F7FB', ink1: '#1D4E89', ink2: '#E85D4A', scale: 10, density: 40, seed: 5 } } },
+  { tag: 'Example', design: { ...defaultDesign(), name: 'Velvet mermaid', silhouette: 'mermaid', neckline: 'square', sleeves: 'long', length: 'maxi', fullness: 65, fabric: 'velvet', print: { type: 'solid', base: '#173B35', ink1: '#D9C27A', ink2: '#7A1F2B', scale: 12, density: 50, seed: 9 } } }
+];
+
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); };
+const deg = (x) => x * Math.PI / 180;
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function ellPerim(a, b) { return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b))); }
+function ellFromCirc(Ccm, k) { const rx = (Ccm / 100) / ellPerim(1, k); return [rx, rx * k]; }
+function catmull(p0, p1, p2, p3, t) { return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t); }
+function cubic(p0, p1, p2, p3, n) {
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, u = 1 - t;
+    out.push([u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0], u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]]);
+  }
+  return out;
+}
+function polyLen(p) { let L = 0; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i][0] - p[i-1][0], p[i][1] - p[i-1][1]); return L; }
+function pointAtLen(p, frac) {
+  const total = polyLen(p) * frac; let acc = 0;
+  for (let i = 1; i < p.length; i++) {
+    const seg = Math.hypot(p[i][0] - p[i-1][0], p[i][1] - p[i-1][1]);
+    if (acc + seg >= total) { const t = seg ? (total - acc) / seg : 0; return { p: [lerp(p[i-1][0], p[i][0], t), lerp(p[i-1][1], p[i][1], t)], dir: [(p[i][0] - p[i-1][0]) / (seg || 1), (p[i][1] - p[i-1][1]) / (seg || 1)] }; }
+    acc += seg;
+  }
+  const n = p.length - 1; return { p: p[n], dir: [1, 0] };
+}
+
+/* ---- Body: everything in meters, y up from the floor, z toward the viewer ---- */
+function buildBody(m) {
+  const H = m.height / 100, s = H / 1.68;
+  const neckBaseY = 0.835 * H;
+  const waistY = neckBaseY - m.backWaist / 100;
+  const span = neckBaseY - waistY;
+  const underY = waistY + 0.33 * span, bustY = waistY + 0.47 * span, armpitY = waistY + 0.60 * span;
+  const shoulderY = waistY + 0.86 * span, shTopY = waistY + 0.95 * span;
+  const hipY = waistY - 0.20 * s, highHipY = waistY - 0.10 * s, crotchY = hipY - 0.075 * s, kneeY = 0.285 * H;
+  const [hx, hz] = ellFromCirc(m.hip, 0.80), [wx, wz] = ellFromCirc(m.waist, 0.72), [bx, bz] = ellFromCirc(m.bust, 0.80);
+  const [ux, uz] = ellFromCirc(m.bust * 0.87, 0.74), [hhx, hhz] = ellFromCirc((m.waist + m.hip) / 2 + 2, 0.76);
+  const shR = m.shoulder / 200 + 0.025 * s;
+  const keys = [
+    [crotchY, hx * 0.86, hz * 0.82, 0],
+    [hipY, hx, hz, -0.004],
+    [highHipY, hhx, hhz, 0],
+    [waistY, wx, wz, 0],
+    [underY, ux, uz, 0.006],
+    [bustY, bx, bz, 0.016],
+    [armpitY, bx * 0.97, bz * 0.86, 0.006],
+    [shoulderY, shR, bz * 0.60, -0.004],
+    [shTopY, shR * 0.66, bz * 0.52, -0.008],
+    [neckBaseY, 0.058 * s, 0.054 * s, -0.01]
+  ];
+  return { H, s, m, keys, neckBaseY, waistY, underY, bustY, armpitY, shoulderY, shTopY, hipY, highHipY, crotchY, kneeY, hx, hz, shR };
+}
+function bodyAt(B, y) {
+  const K = B.keys, n = K.length;
+  if (y <= K[0][0]) return { rx: K[0][1], rz: K[0][2], zo: K[0][3] };
+  if (y >= K[n-1][0]) return { rx: K[n-1][1], rz: K[n-1][2], zo: K[n-1][3] };
+  let i = 0; while (i < n - 2 && y > K[i+1][0]) i++;
+  const t = (y - K[i][0]) / (K[i+1][0] - K[i][0]);
+  const g = (k) => K[clamp(k, 0, n - 1)];
+  const f = (c) => catmull(g(i-1)[c], g(i)[c], g(i+1)[c], g(i+2)[c], t);
+  return { rx: f(1), rz: f(2), zo: f(3) };
+}
+function easeAt(B, E, y) {
+  if (y >= B.bustY) return y > B.shoulderY ? lerp(E.b, 1.5, smooth(B.shoulderY, B.neckBaseY, y)) : E.b;
+  if (y >= B.waistY) return lerp(E.w, E.b, (y - B.waistY) / (B.bustY - B.waistY));
+  if (y >= B.hipY) return lerp(E.h, E.w, (y - B.hipY) / (B.waistY - B.hipY));
+  return E.h;
+}
+function garmentAt(B, E, y) {
+  const b = bodyAt(B, y), C = ellPerim(b.rx, b.rz) * 100, k = (C + easeAt(B, E, y)) / C;
+  return { rx: b.rx * k, rz: b.rz * k, zo: b.zo };
+}
+const maxR = (a, b) => ({ rx: Math.max(a.rx, b.rx), rz: Math.max(a.rz, b.rz), zo: a.zo });
+
+function geomParams(d) {
+  const B = buildBody(d.measurements), E = EASE[d.fit] || EASE.standard, s = B.s, H = B.H;
+  const seamY = d.waist === 'empire' ? B.underY : d.waist === 'drop' ? B.waistY - 0.10 * s : B.waistY;
+  const hemY = ({ mini: 0.40, knee: 0.275, midi: 0.19, tea: 0.12, maxi: 0.015 }[d.length] || 0.19) * H;
+  const f = clamp(d.fullness, 0, 100) / 100;
+  const G = { B, E, s, seamY, hemY, f, shift: d.silhouette === 'shift', flareStart: null, flareFn: null };
+  if (G.shift) { const g = garmentAt(B, E, B.bustY); G.shiftR = { rx: g.rx * 0.985, rz: g.rz * 0.95, zo: 0 }; }
+  const tanA = (a) => Math.tan(deg(a));
+  switch (d.silhouette) {
+    case 'aline': { const t = tanA(6 + 20 * f); G.flareStart = seamY; G.flareFn = dd => t * dd; break; }
+    case 'fitflare': { const t = tanA(10 + 28 * f); G.flareStart = Math.min(seamY, B.hipY - 0.03 * s); G.flareFn = dd => t * dd * dd / (dd + 0.08); break; }
+    case 'ballgown': { const R = (0.28 + 0.32 * f) * s; G.flareStart = seamY; G.flareFn = dd => R * (1 - Math.pow(1 - clamp(dd / (0.8 * s), 0, 1), 2.4)); break; }
+    case 'mermaid': { const t = tanA(22 + 35 * f); G.flareStart = Math.min(seamY, B.kneeY + 0.06 * s); G.flareFn = dd => t * dd * dd / (dd + 0.05); break; }
+    case 'shift': { const t = tanA(2 + 4 * f); G.flareStart = seamY; G.flareFn = dd => t * dd; break; }
+    default: break;
+  }
+  if (G.flareStart != null) G.flareBase = skirtFit(G, G.flareStart);
+  G.neck = neckGeometry(d, B, seamY);
+  return G;
+}
+function bodiceAt(G, y) {
+  let r = garmentAt(G.B, G.E, y);
+  if (G.shift && y < G.B.bustY) r = maxR(r, G.shiftR);
+  return r;
+}
+function skirtFit(G, y) {
+  const B = G.B, seamR = bodiceAt(G, G.seamY);
+  let fit;
+  if (y >= B.hipY) fit = maxR(garmentAt(B, G.E, y), seamR);
+  else {
+    const t = 1 - 0.05 * clamp((B.hipY - y) / (B.hipY - B.kneeY), 0, 1.5);
+    const h = maxR(garmentAt(B, G.E, B.hipY), seamR);
+    fit = { rx: h.rx * t, rz: h.rz * t, zo: h.zo };
+  }
+  if (G.shift) fit = maxR(fit, G.shiftR);
+  return fit;
+}
+function skirtAt(G, y) {
+  const fit = skirtFit(G, y);
+  if (G.flareStart == null || y >= G.flareStart) return { ...fit, A: 0 };
+  const A = G.flareFn(G.flareStart - y), base = G.flareBase;
+  return { rx: Math.max(fit.rx, base.rx + A), rz: Math.max(fit.rz, base.rz + A * 0.92), zo: fit.zo, A };
+}
+function circAt(G, y, part) {
+  const r = part === 'skirt' ? skirtAt(G, y) : bodiceAt(G, y);
+  return ellPerim(r.rx, r.rz) * 100;
+}
+
+function sampleLin(arr, t) { const x = clamp(t, 0, 1) * (arr.length - 1), i = Math.min(arr.length - 2, Math.floor(x)); return lerp(arr[i], arr[i + 1], x - i); }
+/* One neckline definition drives both the pattern piece and the 3D view. */
+function neckGeometry(d, B, seamY) {
+  const m = d.measurements, nk = d.neck, c = nk.curve / 100, fam = neckFamily(d);
+  const SPx = m.shoulder / 2 - (d.sleeves === 'sleeveless' ? 1.5 : 0);
+  const backLen = m.backWaist + (B.waistY - seamY) * 100, frontLen = backLen + 2;
+  const nw = clamp(nk.width / 2, 4.5, SPx - 3);
+  const depth = clamp(nk.depth, 1.5, frontLen - 5), bd = clamp(nk.backDepth, 1.5, backLen - 6);
+  let front;
+  if (fam === 'v') front = cubic([nw, 0], [lerp(nw * 0.67, nw * 0.97, c), lerp(depth * 0.33, depth * 0.5, c)], [lerp(nw * 0.33, nw * 0.3, c), lerp(depth * 0.67, depth * 0.97, c)], [0, depth], 18);
+  else if (fam === 'square') { const r = lerp(0.3, Math.min(5, nw * 0.5, depth * 0.5), c); front = [[nw, 0], ...cubic([nw, depth - r], [nw, depth - r * 0.45], [nw - r * 0.45, depth], [nw - r, depth], 8), [0, depth]]; }
+  else if (fam === 'sweetheart') { const k = depth / 17, S = [nw - 0.5, depth * 0.6]; front = [[nw, 0], ...cubic(S, [nw * 0.55, S[1] - lerp(1, 6, c) * k], [nw * 0.12, depth - lerp(5, 10, c) * k], [0, depth], 18)]; }
+  else front = cubic([nw, 0], [nw, depth * lerp(0.3, 0.92, c)], [nw * lerp(0.4, 0.78, c), depth], [0, depth], 18);
+  const back = nk.back === 'v' ? cubic([nw, 0], [nw * 0.67, bd * 0.33], [nw * 0.33, bd * 0.67], [0, bd], 10)
+    : nk.back === 'square' ? [[nw, 0], ...cubic([nw, bd - 1], [nw, bd - 0.45], [nw - 0.45, bd], [nw - 1, bd], 6), [0, bd]]
+    : cubic([nw, 0], [nw, bd * 0.6], [nw * 0.5, bd], [0, bd], 12);
+  const prof = (pts, D) => {
+    const out = [];
+    for (let i = 0; i <= 40; i++) {
+      const x = nw * i / 40; let y = 0, hit = false;
+      for (let k = 1; k < pts.length; k++) {
+        const a = pts[k - 1], b = pts[k], lo = Math.min(a[0], b[0]), hi = Math.max(a[0], b[0]);
+        if (x < lo - 1e-9 || x > hi + 1e-9) continue;
+        y = Math.max(y, hi - lo < 1e-9 ? Math.max(a[1], b[1]) : lerp(a[1], b[1], (x - a[0]) / (b[0] - a[0]))); hit = true;
+      }
+      out.push(hit ? y / D : 1);
+    }
+    out[40] = 0; return out;
+  };
+  const wf = clamp(0.12 + 0.024 * nw, 0.16, d.sleeves === 'sleeveless' ? 0.37 : 0.46) * Math.PI;
+  return { nw, depth, bd, front, back, w3: { wf, drop: depth * 0.0085, prof: prof(front, depth), wb: Math.min(wf, 0.42 * Math.PI), dropB: Math.max(0.018, bd * 0.0095), profB: prof(back, bd) } };
+}
+function straplessTop(G, d, a) {
+  const B = G.B, s = B.s, PI = Math.PI;
+  let top = B.armpitY + 0.022 * s - 0.012 * s * smooth(0.5 * PI, PI, a);
+  const w = 0.42 * PI;
+  if (a < w) {
+    const t = a / w;
+    if (neckFamily(d) === 'sweetheart') top += -0.045 * s * Math.pow(1 - smooth(0, 0.3, t), 1.4) + 0.022 * s * Math.sin(PI * clamp(t / 0.85, 0, 1)) * smooth(0, 0.25, t);
+    else top += 0.012 * s * (1 - t * t);
+  }
+  return top;
+}
+/* The bodice follows the body's surface from the waist seam up and over the shoulder to the base of
+   the neck. Each column stops where the neckline (the same curve as the pattern piece) cuts it:
+   the curve's width is measured across the shoulder, its depth straight down at center front/back. */
+function bodiceColumns(G, d, cols, pad) {
+  const B = G.B, s = B.s, PI = Math.PI, N = G.neck, NS = 160;
+  const y0 = G.seamY, y1 = B.neckBaseY, span = y1 - y0;
+  const ys = [], rs = [];
+  for (let k = 0; k <= NS; k++) { const y = y0 + span * (1 - Math.pow(1 - k / NS, 2.5)); ys.push(y); rs.push(bodiceAt(G, y)); }
+  const yH = y1 - 0.004, nwM = N.nw / 100, yMin = y0 + 0.04 * s;
+  const covered = (a, x, y) => {
+    if (d.sleeves === 'strapless') return y < straplessTop(G, d, a);
+    if (d.sleeves === 'sleeveless') { const w = smooth(0.06 * PI, 0.11 * PI, Math.abs(a - 0.5 * PI)); if (w < 1 && y > lerp(B.armpitY + 0.012 * s, y1 + 0.3, w)) return false; }
+    if (x < nwM) {
+      const dip = 0.009 * (a < PI / 2 ? N.depth * sampleLin(N.w3.prof, x / nwM) : N.bd * sampleLin(N.w3.profB, x / nwM));
+      if (yH - y < dip) return false;
+    }
+    return true;
+  };
+  const out = [];
+  for (let j = 0; j <= cols; j++) {
+    const th = -PI + 2 * PI * j / cols, a = Math.abs(th), sn = Math.sin(th), cs = Math.cos(th);
+    const P = [], S = [0];
+    for (let k = 0; k <= NS; k++) {
+      const r = rs[k]; P.push([(r.rx + pad) * sn, ys[k], (r.rz + pad) * cs + r.zo]);
+      if (k) S.push(S[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1], P[k][2] - P[k - 1][2]));
+    }
+    const at = (sv) => {
+      sv = clamp(sv, 0, S[NS]); let lo = 0, hi = NS;
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (S[m] <= sv) lo = m; else hi = m; }
+      const t = S[hi] > S[lo] ? (sv - S[lo]) / (S[hi] - S[lo]) : 0;
+      return [lerp(P[lo][0], P[hi][0], t), lerp(P[lo][1], P[hi][1], t), lerp(P[lo][2], P[hi][2], t)];
+    };
+    const cov = (sv) => { const q = at(sv); return covered(a, Math.abs(q[0]), q[1]); };
+    let sTop = S[NS];
+    for (let k = 1; k <= NS; k++) if (!cov(S[k])) {
+      let lo = S[k - 1], hi = S[k];
+      for (let it = 0; it < 14; it++) { const m = (lo + hi) / 2; if (cov(m)) lo = m; else hi = m; }
+      sTop = lo; break;
+    }
+    let sMin = 0; for (let k = 1; k <= NS; k++) if (ys[k] >= yMin) { sMin = S[k]; break; }
+    sTop = Math.max(sTop, sMin);
+    out.push(t => at(sTop * t));
+  }
+  return out;
+}
+
+/* ---- Pattern drafting (centimeters, y down) ---- */
+function offsetPoly(pts, offs) {
+  const n = pts.length; let area = 0;
+  for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; }
+  const sg = area > 0 ? 1 : -1;
+  const lines = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n]; let dx = b[0] - a[0], dy = b[1] - a[1]; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+    const nx = sg * dy, ny = -sg * dx, o = offs[i];
+    lines.push({ p: [a[0] + nx * o, a[1] + ny * o], d: [dx, dy], n: [nx, ny], o });
+  }
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const L1 = lines[(i - 1 + n) % n], L2 = lines[i];
+    const den = L1.d[0] * L2.d[1] - L1.d[1] * L2.d[0];
+    let q;
+    if (Math.abs(den) < 1e-6) q = [pts[i][0] + L2.n[0] * L2.o, pts[i][1] + L2.n[1] * L2.o];
+    else {
+      const t = ((L2.p[0] - L1.p[0]) * L2.d[1] - (L2.p[1] - L1.p[1]) * L2.d[0]) / den;
+      q = [L1.p[0] + L1.d[0] * t, L1.p[1] + L1.d[1] * t];
+      const maxD = 3 * Math.max(L1.o, L2.o, 0.5);
+      if (Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]) > maxD) {
+        const nx = L1.n[0] + L2.n[0], ny = L1.n[1] + L2.n[1], nl = Math.hypot(nx, ny) || 1, o = Math.max(L1.o, L2.o);
+        q = [pts[i][0] + nx / nl * o, pts[i][1] + ny / nl * o];
+      }
+    }
+    out.push(q);
+  }
+  return out;
+}
+/* A piece is assembled from edge segments, each with its own allowance. */
+function assemble(segs) {
+  const pts = [], offs = [], kinds = [];
+  for (const s of segs) {
+    for (let i = 0; i < s.pts.length - 1; i++) {
+      const p = s.pts[i], last = pts[pts.length - 1];
+      if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < 1e-4) continue;
+      pts.push(p); offs.push(s.sa); kinds.push(s.kind);
+    }
+  }
+  // drop closing duplicate
+  const f = pts[0], l = pts[pts.length - 1];
+  if (Math.hypot(f[0] - l[0], f[1] - l[1]) < 1e-4) { pts.pop(); offs.pop(); kinds.pop(); }
+  return { pts, offs, kinds };
+}
+function bbox(pts) { let a = Infinity, b = Infinity, c = -Infinity, e = -Infinity; for (const p of pts) { a = Math.min(a, p[0]); b = Math.min(b, p[1]); c = Math.max(c, p[0]); e = Math.max(e, p[1]); } return { x0: a, y0: b, x1: c, y1: e, w: c - a, h: e - b }; }
+
+function draftPattern(d, sa) {
+  const m = d.measurements, E = EASE[d.fit] || EASE.standard, G = geomParams(d), B = G.B;
+  const pieces = [], hemSA = Math.max(sa, 2.5), notes = [];
+  const strapless = d.sleeves === 'strapless', sleeveless = d.sleeves === 'sleeveless', sleeved = !strapless && !sleeveless;
+  const neck = 22 + m.bust * 0.15, NW = neck / 6 + 0.5, slope = 4.5;
+  const AHd = m.bust / 10 + 11.5 + (sleeveless ? 1.5 : 0);
+  const SPx = m.shoulder / 2 - (sleeveless ? 1.5 : 0);
+  const seamDrop = (B.waistY - G.seamY) * 100;
+  const backLen = m.backWaist + seamDrop, frontLen = backLen + 2;
+  const Wq = circAt(G, G.seamY, 'bodice') / 4;
+  const WqNat = circAt(G, B.waistY, 'bodice') / 4;
+  const NL = G.neck;
+  const armholes = {};
+
+  function bodice(front) {
+    const Bq = (m.bust + E.b) / 4 + (front ? 0.5 : -0.5);
+    const len = front ? frontLen : backLen, drop = front ? 1 : 0;
+    const bpX = front ? m.bust * 0.1 - 0.5 : 9.5;
+    const segs = []; const marks = []; const notches = [];
+    const split = (target) => { const diff = Bq - target; if (diff <= 0) return { side: Bq - diff, dart: 0, sideTake: diff }; let side = Math.min(diff * 0.45, front ? 2.5 : 2), dart = diff - side; const maxD = front ? 5 : 4; if (dart > maxD) { dart = maxD; side = diff - dart; } return { side: Bq - side, dart }; };
+    const apexY = front ? AHd + 3 : Math.max(AHd * 0.75, len - 15);
+    let sideWaist, seamSide, dartSeam;
+    const sidePts = [];
+    if (seamDrop > 2) { // dropped waist: shape to the natural waist, then out to the seam
+      const natLen = front ? m.backWaist + 2 : m.backWaist;
+      const nat = split(WqNat);
+      sideWaist = nat.side; seamSide = Math.max(nat.side, Wq); dartSeam = Math.max(0, seamSide - Wq);
+      sidePts.push([Bq, AHd], [nat.side, natLen], [seamSide, len]);
+      if (nat.dart > 0.2) marks.push({ k: 'dart', pts: [[bpX, apexY], [bpX - nat.dart / 2, natLen], [bpX - dartSeam / 2, len + drop * 0.6], [bpX + dartSeam / 2, len + drop * 0.6], [bpX + nat.dart / 2, natLen], [bpX, apexY]] });
+    } else {
+      const s = split(Wq); seamSide = s.side; dartSeam = s.dart;
+      sidePts.push([Bq, AHd], [seamSide, len]);
+      if (dartSeam > 0.2) marks.push({ k: 'dart', pts: [[bpX - dartSeam / 2, len + drop * 0.55], [bpX, apexY], [bpX + dartSeam / 2, len + drop * 0.55]] });
+    }
+    const cfBottom = [0, len + drop];
+    const edgeKind = front ? 'fold' : 'seam', edgeSA = front ? 0 : sa;
+    if (!strapless) {
+      const nl = front ? NL.front : NL.back, depth = nl[nl.length - 1][1];
+      const SP = [SPx, slope];
+      const arm = front
+        ? cubic(SP, [SPx - 1.2, slope + (AHd - slope) * 0.55], [lerp(SPx - 1.2, Bq, 0.25), AHd], [Bq, AHd], 20)
+        : cubic(SP, [SPx - 0.6, slope + (AHd - slope) * 0.6], [lerp(SPx - 0.6, Bq, 0.3), AHd], [Bq, AHd], 20);
+      armholes[front ? 'front' : 'back'] = arm;
+      segs.push({ pts: [cfBottom, [0, depth]], sa: edgeSA, kind: edgeKind });
+      segs.push({ pts: nl.slice().reverse(), sa: Math.min(sa, 1), kind: 'seam' });
+      segs.push({ pts: [[NL.nw, 0], SP], sa, kind: 'seam' });
+      segs.push({ pts: arm, sa: sleeved ? sa : Math.min(sa, 1), kind: 'seam' });
+      const nPt = pointAtLen(arm, 0.62);
+      notches.push({ ...nPt, count: front ? 1 : 2 });
+    } else {
+      const topSide = [Bq, AHd + 2];
+      const top = front
+        ? (neckFamily(d) === 'sweetheart' ? cubic([0, AHd + 3], [Bq * 0.2, AHd - 2.5], [Bq * 0.7, AHd - 3], topSide, 20) : cubic([0, AHd], [Bq * 0.3, AHd], [Bq * 0.6, AHd], topSide, 12))
+        : cubic([0, AHd + 3], [Bq * 0.3, AHd + 3], [Bq * 0.7, AHd + 2.5], topSide, 12);
+      segs.push({ pts: [cfBottom, top[0]], sa: edgeSA, kind: edgeKind });
+      segs.push({ pts: top, sa: Math.min(sa, 1), kind: 'seam' });
+      sidePts[0] = topSide;
+    }
+    segs.push({ pts: sidePts, sa, kind: 'seam' });
+    segs.push({ pts: cubic([seamSide, len], [seamSide * 0.6, len + drop * 0.7], [seamSide * 0.25, len + drop], cfBottom, 10), sa, kind: 'seam' });
+    const gx = Math.max(4, Bq * 0.2);
+    return {
+      name: front ? 'Bodice front' : 'Bodice back',
+      cut: front ? 'Cut 1 on fold' : 'Cut 2 · center-back zip',
+      fold: front, ...assemble(segs), marks, notches,
+      grain: [[gx, (strapless ? AHd + 4 : AHd * 0.55)], [gx, len - 3]]
+    };
+  }
+  pieces.push(bodice(true), bodice(false));
+
+  // Sleeves
+  if (sleeved) {
+    const sv = d.sleeve, P = sv.puff / 100, F = sv.flare / 100, Gt = sv.gather / 100, band = sv.cuff === 'band';
+    const AHtot = polyLen(armholes.front) + polyLen(armholes.back);
+    const target = AHtot + 2.5 + AHtot * 0.3 * P;
+    const BW = m.upperArm + ({ close: 4, standard: 5.5, relaxed: 8 }[d.fit] || 5.5);
+    const capW = BW * (1 + 0.5 * P);
+    const capCurve = (h) => [
+      ...cubic([-capW / 2, h], [-capW / 2 + capW * 0.18, h * 0.95], [-capW * 0.2, 0], [0, 0], 16),
+      ...cubic([0, 0], [capW * 0.18, 0], [capW / 2 - capW * 0.22, h * 0.85], [capW / 2, h], 16).slice(1)
+    ];
+    let lo = 4, hi = 26, capH = 12;
+    for (let k = 0; k < 30; k++) { capH = (lo + hi) / 2; if (polyLen(capCurve(capH)) < target) lo = capH; else hi = capH; }
+    capH += 2 * P;
+    const cap = capCurve(capH);
+    const bandH = band ? 4 : 0;
+    const L = Math.max(capH + 2, m.arm * sv.length / 100 - bandH);
+    const wrist = Math.max(15, m.upperArm * 0.58) + 4;
+    const hemFit = lerp(BW, wrist, clamp((L - capH) / Math.max(1, m.arm - capH), 0, 1));
+    const hemW = hemFit * (1 + 1.6 * F) + Gt * Math.max(0, BW * 1.45 - hemFit);
+    const sag = F > 0.2 ? Math.min(6, (hemW - hemFit) * 0.12) : 0;
+    const gatheredHem = band || Gt > 0.15;
+    const segs = [
+      { pts: cap, sa, kind: 'seam' },
+      { pts: [[capW / 2, capH], [hemW / 2, L]], sa, kind: 'seam' },
+      { pts: sag ? cubic([hemW / 2, L], [hemW * 0.2, L + sag], [-hemW * 0.2, L + sag], [-hemW / 2, L], 12) : [[hemW / 2, L], [-hemW / 2, L]], sa: gatheredHem ? sa : F > 0.4 ? Math.min(hemSA, 1) : hemSA, kind: 'hem' },
+      { pts: [[-hemW / 2, L], [-capW / 2, capH]], sa, kind: 'seam' }
+    ];
+    const asm = assemble(segs), half = Math.max(capW, hemW) / 2;
+    const shift = (p) => [p[0] + half, p[1]];
+    const note = [P > 0.15 && 'Gather cap between notches', band ? 'Gather hem to fit band' : Gt > 0.15 && 'Elastic casing at hem'].filter(Boolean).join(' · ');
+    pieces.push({
+      name: 'Sleeve', cut: 'Cut 2 (mirror)', fold: false,
+      pts: asm.pts.map(shift), offs: asm.offs, kinds: asm.kinds, marks: [],
+      notches: [
+        { ...pointAtLen(cap.slice(16), 0.55), count: 1 },
+        { ...pointAtLen(cap.slice(0, 17), 0.45), count: 2 }
+      ].map(n => ({ ...n, p: shift(n.p) })),
+      dots: [shift([0, 0])], grain: [shift([0, capH * 0.6]), shift([0, L - 3])], note
+    });
+    if (band) pieces.push(rectPiece('Sleeve band', 'Cut 2 · fold lengthwise', hemFit + 2 + 2 * sa, bandH * 2 + 2 * sa));
+  }
+
+  // Skirt
+  const Ls = (G.seamY - G.hemY) * 100;
+  const q = (dcm) => circAt(G, G.seamY - dcm / 100, 'skirt') / 4;
+  let fs = G.flareStart == null ? Infinity : Math.max(0, (G.seamY - G.flareStart) * 100);
+  if (fs >= Ls - 3) fs = Infinity;
+  if (fs <= 1 && fs < Infinity) fs = 0;
+  let cone = null;
+  if (fs < Infinity) {
+    const TAU = 2 * Math.PI, r1 = q(fs) * 4 / TAU;
+    if (d.silhouette === 'ballgown') { // gathered: top edge cut wider, then gathered to the waist
+      const cL = q(Ls) * 4, top = Math.min(cL, q(fs) * 4 * 2.2);
+      cone = { r1: top / TAU, r2: cL / TAU, gathered: top > q(fs) * 4 * 1.1 };
+    } else {
+      let k = 0;
+      for (let dd = fs + 2; dd <= Ls + 0.01; dd += 2) k = Math.max(k, (q(dd) * 4 / TAU - r1) / (dd - fs));
+      cone = { r1, r2: r1 + k * (Ls - fs), gathered: false };
+    }
+    if (cone.r2 - cone.r1 < 1 && !cone.gathered) fs = Infinity;
+  }
+  const hipDepth = Math.max(0, (G.seamY - B.hipY) * 100);
+  const twoPart = fs > 0 && fs < Infinity;
+  for (const front of [true, false]) {
+    const edgeKind = front ? 'fold' : 'seam', edgeSA = front ? 0 : sa;
+    const cutTxt = front ? 'Cut 1 on fold' : 'Cut 2 · center-back seam';
+    if (fs > 0) { // fitted part
+      const Lf = Math.min(fs, Ls);
+      const dartW = clamp((q(Math.min(hipDepth, Lf)) - q(0)) * 0.4, 0, 3);
+      const dartLen = front ? 9 : 13;
+      const side = []; let prev = 0;
+      const steps = Math.max(6, Math.ceil(Lf / 2));
+      for (let i = 0; i <= steps; i++) {
+        const dd = Lf * i / steps;
+        let x = q(dd) + dartW * (1 - smooth(0, dartLen, dd));
+        if (dd <= hipDepth + 0.01) { x = Math.max(x, prev); prev = x; }
+        side.push([x, dd]);
+      }
+      const isHem = fs === Infinity;
+      const segs = [
+        { pts: [[0, Lf], [0, 0]], sa: edgeSA, kind: edgeKind },
+        { pts: [[0, 0], side[0]], sa, kind: 'seam' },
+        { pts: side, sa, kind: 'seam' },
+        { pts: [side[side.length - 1], [0, Lf]], sa: isHem ? hemSA : sa, kind: isHem ? 'hem' : 'seam' }
+      ];
+      const x0 = q(0) * 0.45, marks = [];
+      if (dartW > 0.3 && hipDepth > 4) marks.push({ k: 'dart', pts: [[x0 - dartW / 2, 0], [x0, dartLen], [x0 + dartW / 2, 0]] });
+      const nm = twoPart ? (d.silhouette === 'mermaid' ? 'Skirt' : 'Skirt yoke') : 'Skirt';
+      pieces.push({ name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks, notches: [], grain: [[Math.max(4, q(0) * 0.2), 4], [Math.max(4, q(0) * 0.2), Lf - 3]] });
+    }
+    if (fs < Infinity) { // flared part, developed from a cone
+      const dv = Ls - fs, r1 = cone.r1, r2 = Math.max(cone.r2, r1 + 0.5);
+      const l = Math.hypot(dv, r2 - r1), Rt = r1 * l / (r2 - r1), Rb = Rt + l;
+      const phi = (Math.PI / 2) * (r2 - r1) / l;
+      const P = (R, a) => [R * Math.sin(a), -Rt + R * Math.cos(a)];
+      const n = 28;
+      const topArc = [], botArc = [];
+      for (let i = 0; i <= n; i++) { const a = phi * i / n; topArc.push(P(Rt, a)); botArc.push(P(Rb, a)); }
+      const segs = [
+        { pts: [[0, l], [0, 0]], sa: edgeSA, kind: edgeKind },
+        { pts: topArc, sa, kind: 'seam' },
+        { pts: [topArc[n], botArc[n]], sa, kind: 'seam' },
+        { pts: botArc.slice().reverse(), sa: Math.min(hemSA, 1.5), kind: 'hem' }
+      ];
+      const nm = twoPart ? (d.silhouette === 'mermaid' ? 'Flare panel' : 'Skirt flare') : 'Skirt';
+      const gx = Math.min(P(Rt, phi * 0.3)[0], 12);
+      pieces.push({ name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks: [], notches: [], grain: [[Math.max(gx, 4), 3], [Math.max(gx, 4), l - 4]], circle: phi > 1.2, note: cone.gathered ? 'Gather top edge to fit waist' : '' });
+      if (cone.gathered && front) notes.push('Gather the top of each skirt piece to fit the bodice waist. A petticoat gives the ballgown its full shape.');
+      if (phi > 1.2 && front) notes.push('The skirt is close to a full circle. Cut each layer separately if it is wider than your fabric.');
+    }
+  }
+
+  // finish pieces: cutting line, bounds, ids
+  pieces.forEach((p, i) => {
+    p.id = String.fromCharCode(65 + i);
+    p.cutPts = offsetPoly(p.pts, p.offs);
+    if (p.fold) p.cutPts = p.cutPts.map(c => [Math.max(0, c[0]), c[1]]);
+    p.box = bbox(p.cutPts);
+  });
+  return { pieces, G, notes, skirtLen: Ls, bodiceLen: frontLen };
+
+  function rectPiece(name, cut, w, h) {
+    const pts = [[0, 0], [w, 0], [w, h], [0, h]];
+    return { name, cut, fold: false, pts, offs: [0, 0, 0, 0], kinds: ['seam', 'seam', 'seam', 'seam'], marks: [], notches: [], grain: [[w / 2 - 4, h / 2], [w / 2 + 4, h / 2]], grainHorizontal: true, sewn: true };
+  }
+}
+
+function layoutPieces(pat, fabricW) {
+  const Wf = fabricW / 2, gap = 2;
+  const items = pat.pieces.map(p => ({ p, w: p.box.w, h: p.box.h }));
+  const folds = items.filter(i => i.p.fold).sort((a, b) => b.h - a.h);
+  const others = items.filter(i => !i.p.fold).sort((a, b) => b.h - a.h);
+  const shelves = []; let y = 0, over = false;
+  const place = (it, x, sy) => { it.x = x - it.p.box.x0; it.y = sy - it.p.box.y0; };
+  for (const it of folds) { if (it.w > Wf) over = true; shelves.push({ y, h: it.h, x: it.w + gap }); place(it, 0, y); y += it.h + gap; }
+  for (const it of others) {
+    if (it.w > Wf) over = true;
+    let sh = shelves.find(s => s.x + it.w <= Wf && it.h <= s.h + 0.01);
+    if (!sh) { sh = { y, h: it.h, x: 0 }; shelves.push(sh); y += it.h + gap; }
+    place(it, sh.x, sh.y); sh.x += it.w + gap;
+  }
+  const len = Math.max(10, y - gap);
+  const extra = items.filter(i => i.w > Wf).reduce((a, i) => a + i.h, 0);
+  const total = (len + extra) * 1.1;
+  const yards = Math.ceil(total / 91.44 * 8) / 8, meters = Math.ceil(total / 10) / 10;
+  return { items, Wf, len, over, yards, meters };
+}
+</script>
+
+<script>
+/* =====================================================================
+   PRINTS — seamless tiles drawn on canvas
+   ===================================================================== */
+function drawPrint(ctx, S, p, fabric) {
+  const rng = mulberry32(((p.seed | 0) + 1) * 9973);
+  const dens = clamp(p.density, 0, 100) / 100;
+  ctx.save();
+  ctx.fillStyle = p.base; ctx.fillRect(0, 0, S, S);
+  const wrap = (fn) => { for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) { ctx.save(); ctx.translate(dx, dy); fn(); ctx.restore(); } };
+  const ell = (x, y, rx, ry, rot, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); ctx.fill(); };
+  switch (p.type) {
+    case 'polka': {
+      let n = Math.round(2 + dens * 6) * 2; const cell = S / n, r = cell * (0.17 + 0.08 * rng());
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const x = (i + 0.5 + (j % 2 ? 0.5 : 0)) * cell, y = (j + 0.5) * cell;
+        wrap(() => ell(x, y, r, r, 0, p.ink1));
+        if (dens > 0.45) wrap(() => ell(x + cell * 0.5, y + cell * 0.5, r * 0.32, r * 0.32, 0, p.ink2));
+      }
+      break;
+    }
+    case 'stripe': {
+      const n = Math.round(2 + dens * 6), u = S / n;
+      for (let k = 0; k < n; k++) {
+        ctx.fillStyle = p.ink1; ctx.fillRect(k * u, 0, u * 0.42, S);
+        ctx.fillStyle = p.ink2; ctx.fillRect(k * u + u * 0.66, 0, Math.max(2, u * 0.06), S);
+      }
+      break;
+    }
+    case 'gingham': {
+      const n = Math.round(3 + dens * 7), u = S / n;
+      ctx.globalAlpha = 0.5; ctx.fillStyle = p.ink1;
+      for (let k = 0; k < n; k++) { ctx.fillRect(k * u, 0, u / 2, S); ctx.fillRect(0, k * u, S, u / 2); }
+      ctx.globalAlpha = 0.18; ctx.fillStyle = p.ink2;
+      for (let k = 0; k < n; k++) { ctx.fillRect(k * u + u * 0.72, 0, u * 0.06, S); }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'floral': {
+      const count = Math.round(4 + dens * 14);
+      for (let f = 0; f < count; f++) {
+        const x = rng() * S, y = rng() * S, R = S * (0.04 + 0.05 * rng()) * (1.35 - dens * 0.5), rot = rng() * Math.PI, petals = rng() < 0.5 ? 5 : 6;
+        wrap(() => {
+          for (let k = 0; k < 2; k++) { const a = rot + k * 2.4 + 0.6; ell(x + Math.cos(a) * R * 1.45, y + Math.sin(a) * R * 1.45, R * 0.75, R * 0.3, a, p.ink2); }
+          for (let k = 0; k < petals; k++) { const a = rot + k * Math.PI * 2 / petals; ell(x + Math.cos(a) * R * 0.55, y + Math.sin(a) * R * 0.55, R * 0.55, R * 0.36, a, p.ink1); }
+          ell(x, y, R * 0.22, R * 0.22, 0, p.ink2);
+        });
+      }
+      for (let k = 0; k < count * 3; k++) { const x = rng() * S, y = rng() * S; wrap(() => { ctx.globalAlpha = 0.7; ell(x, y, S * 0.006, S * 0.006, 0, p.ink1); ctx.globalAlpha = 1; }); }
+      break;
+    }
+    case 'botanical': {
+      const count = Math.round(3 + dens * 9);
+      for (let f = 0; f < count; f++) {
+        const x = rng() * S, y = rng() * S, L = S * (0.14 + 0.12 * rng()), a = rng() * Math.PI * 2, bend = (rng() - 0.5) * 0.8, col = rng() < 0.7 ? p.ink2 : p.ink1;
+        wrap(() => {
+          ctx.strokeStyle = col; ctx.lineWidth = S * 0.006; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(x, y);
+          const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L, cx = x + Math.cos(a + bend) * L * 0.5, cy = y + Math.sin(a + bend) * L * 0.5;
+          ctx.quadraticCurveTo(cx, cy, ex, ey); ctx.stroke();
+          for (let k = 1; k <= 6; k++) {
+            const t = k / 7, u = 1 - t, px = u * u * x + 2 * u * t * cx + t * t * ex, py = u * u * y + 2 * u * t * cy + t * t * ey;
+            const side = k % 2 ? 1 : -1, la = a + side * 0.9;
+            ell(px + Math.cos(la) * L * 0.07, py + Math.sin(la) * L * 0.07, L * 0.09 * (1 - t * 0.4), L * 0.035, la, col);
+          }
+        });
+      }
+      break;
+    }
+    case 'geometric': {
+      const n = Math.round(3 + dens * 6), c = S / n, cols = [p.ink1, p.ink2, p.base];
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const x = i * c, y = j * c, v = Math.floor(rng() * 4), col = cols[Math.floor(rng() * 3)];
+        ctx.fillStyle = col; ctx.beginPath();
+        if (v === 0) { ctx.moveTo(x, y + c); ctx.lineTo(x + c / 2, y); ctx.lineTo(x + c, y + c); }
+        else if (v === 1) { ctx.moveTo(x, y); ctx.lineTo(x + c, y); ctx.lineTo(x + c / 2, y + c); }
+        else if (v === 2) { ctx.moveTo(x + c / 2, y); ctx.lineTo(x + c, y + c / 2); ctx.lineTo(x + c / 2, y + c); ctx.lineTo(x, y + c / 2); }
+        else { ctx.moveTo(x, y); ctx.lineTo(x + c, y + c); ctx.lineTo(x, y + c); }
+        ctx.closePath(); ctx.fill();
+      }
+      break;
+    }
+    case 'abstract': {
+      const count = Math.round(5 + dens * 14);
+      for (let f = 0; f < count; f++) {
+        const x = rng() * S, y = rng() * S, R = S * (0.04 + 0.08 * rng()), col = rng() < 0.55 ? p.ink1 : p.ink2;
+        const pts = []; for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2; const rr = R * (0.6 + rng() * 0.7); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.8]); }
+        wrap(() => {
+          ctx.fillStyle = col; ctx.globalAlpha = 0.88; ctx.beginPath();
+          for (let k = 0; k < 7; k++) { const a = pts[k], b = pts[(k + 1) % 7]; const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; if (k === 0) ctx.moveTo(mx, my); else ctx.quadraticCurveTo(a[0], a[1], mx, my); }
+          const a = pts[0], b = pts[1]; ctx.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+          ctx.fill(); ctx.globalAlpha = 1;
+        });
+      }
+      for (let k = 0; k < count; k++) {
+        const x = rng() * S, y = rng() * S, L = S * 0.08 * (0.5 + rng()), a = rng() * Math.PI;
+        wrap(() => { ctx.strokeStyle = p.ink2; ctx.lineWidth = S * 0.008; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); ctx.stroke(); });
+      }
+      break;
+    }
+    default: break;
+  }
+  // weave texture
+  const wr = mulberry32(42);
+  if (fabric === 'linen') {
+    for (let k = 0; k < 240; k++) { ctx.globalAlpha = 0.05 + wr() * 0.06; ctx.fillStyle = wr() < 0.5 ? '#000' : '#fff'; if (wr() < 0.5) ctx.fillRect(0, wr() * S, S, 1 + wr() * 2); else ctx.fillRect(wr() * S, 0, 1 + wr() * 2, S); }
+  } else if (fabric === 'cotton' || fabric === 'crepe') {
+    for (let k = 0; k < 2600; k++) { ctx.globalAlpha = 0.05; ctx.fillStyle = wr() < 0.5 ? '#000' : '#fff'; ctx.fillRect(wr() * S, wr() * S, 1.5, 1.5); }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+</script>
+
+<script>
+/* =====================================================================
+   APP STATE, HISTORY, CONTROLS
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const DRAFT_KEY = 'muslin-studio-draft-v1';
+
+let design = sanitize(defaultDesign());
+let currentId = null, dirty = false;
+const hist = { past: [], future: [] };
+let patOpts = { sa: 1.5, fabricW: 150 };
+
+function sanitize(d) {
+  const base = defaultDesign(), out = { ...base, ...(d || {}) };
+  for (const k of ['silhouette', 'neckline', 'sleeves', 'waist', 'length', 'fabric', 'fit']) if (!OPTS[k].some(o => o[0] === out[k])) out[k] = base[k];
+  out.fullness = clamp(Number(out.fullness) || 0, 0, 100);
+  out.name = String(out.name || base.name).slice(0, 60);
+  const p = { ...base.print, ...(d && d.print || {}) };
+  if (!OPTS['print.type'].some(o => o[0] === p.type)) p.type = base.print.type;
+  for (const c of ['base', 'ink1', 'ink2']) if (!/^#[0-9a-f]{6}$/i.test(p[c])) p[c] = base.print[c];
+  p.scale = clamp(Number(p.scale) || 14, 4, 40); p.density = clamp(Number(p.density) || 0, 0, 100); p.seed = (Number(p.seed) || 1) | 0;
+  out.print = p;
+  const m = { ...base.measurements, ...(d && d.measurements || {}) };
+  for (const [k, , lo, hi] of MEAS_FIELDS) m[k] = clamp(Number(m[k]) || base.measurements[k], lo, hi);
+  out.measurements = m;
+  out.units = out.units === 'cm' ? 'cm' : 'in';
+  const sp = SLEEVE_PRESETS[out.sleeves] || SLEEVE_PRESETS.cap, sv = { ...sp, ...((d && d.sleeve) || {}) };
+  for (const k of SLEEVE_KEYS) sv[k] = clamp(Number(sv[k]), k === 'length' ? 8 : 0, 100) || (k === 'length' ? sp.length : 0);
+  if (!['none', 'band'].includes(sv.cuff)) sv.cuff = sp.cuff;
+  const np = NECK_PRESETS[out.neckline], nv = { ...np, ...((d && d.neck) || {}) };
+  for (const [k, lo, hi] of NECK_KEYS) { const v = Number(nv[k]); nv[k] = isFinite(v) ? clamp(v, lo, hi) : np[k]; }
+  if (!['round', 'v', 'square'].includes(nv.back)) nv.back = np.back;
+  out.neck = { depth: nv.depth, width: nv.width, backDepth: nv.backDepth, curve: nv.curve, back: nv.back };
+  out.sleeve = { length: sv.length, puff: sv.puff, flare: sv.flare, gather: sv.gather, cuff: sv.cuff };
+  out.v = 1;
+  return out;
+}
+
+function commit(next, opts = {}) {
+  next = sanitize(next);
+  if (JSON.stringify(next) === JSON.stringify(design)) return;
+  if (!opts.noHistory) { hist.past.push(JSON.stringify(design)); if (hist.past.length > 80) hist.past.shift(); hist.future.length = 0; }
+  design = next;
+  if (!opts.clean) setDirty(true);
+  render();
+}
+function setDirty(v) { dirty = v; $('#dirtyDot').hidden = !v; saveDraft(); }
+let draftTimer;
+function saveDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ design, currentId, dirty })); } catch (e) {} }, 400); }
+function loadDraft() { try { const s = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (s && s.design) { design = sanitize(s.design); currentId = s.currentId || null; dirty = !!s.dirty; } } catch (e) {} }
+
+function undo() { if (!hist.past.length) return; hist.future.push(JSON.stringify(design)); design = sanitize(JSON.parse(hist.past.pop())); setDirty(true); render(); }
+function redo() { if (!hist.future.length) return; hist.past.push(JSON.stringify(design)); design = sanitize(JSON.parse(hist.future.pop())); setDirty(true); render(); }
+
+function get(path) { return path.split('.').reduce((o, k) => o[k], design); }
+function setPath(obj, path, v) { const ks = path.split('.'); let o = obj; for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = v; }
+function update(path, v, opts) { const n = clone(design); setPath(n, path, v); commit(n, opts); }
+
+/* Units */
+const CM_PER_IN = 2.54;
+function fracIn(x) {
+  const whole = Math.floor(x + 1e-9), e = Math.round((x - whole) * 8);
+  const fr = ['', '⅛', '¼', '⅜', '½', '⅝', '¾', '⅞'];
+  if (e === 8) return String(whole + 1);
+  return (whole ? whole : (e ? '' : '0')) + fr[e];
+}
+function fmtLen(cm, units = design.units) { return units === 'cm' ? `${Math.round(cm * 10) / 10} cm` : `${fracIn(cm / CM_PER_IN)} in`; }
+
+/* Build controls */
+function buildSeg(el, key) {
+  el.innerHTML = '';
+  for (const [v, lab] of OPTS[key]) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = lab; b.dataset.v = v;
+    b.addEventListener('click', () => { if (key === 'sleeves') { const n = clone(design); n.sleeves = v; n.sleeve = { ...SLEEVE_PRESETS[v] }; commit(n); } else if (key === 'neckline') { const n = clone(design); n.neckline = v; const { family, ...np } = NECK_PRESETS[v]; n.neck = np; commit(n); } else update(key, v); });
+    el.appendChild(b);
+  }
+}
+$$('.seg[data-key]').forEach(el => buildSeg(el, el.dataset.key));
+PALETTES.forEach(([name, a, b, c]) => {
+  const bt = document.createElement('button'); bt.type = 'button'; bt.title = name; bt.setAttribute('aria-label', 'Palette ' + name);
+  bt.innerHTML = `<span style="background:${a}"></span><span style="background:${b}"></span><span style="background:${c}"></span>`;
+  bt.addEventListener('click', () => { const n = clone(design); Object.assign(n.print, { base: a, ink1: b, ink2: c }); commit(n); });
+  $('#palettes').appendChild(bt);
+});
+const measGrid = $('#measGrid');
+for (const [k, lab] of MEAS_FIELDS) {
+  const l = document.createElement('label'); l.innerHTML = `<span>${lab}</span><input type="number" inputmode="decimal" id="m_${k}">`;
+  measGrid.appendChild(l);
+  l.querySelector('input').addEventListener('change', (e) => {
+    const raw = parseFloat(e.target.value); if (!isFinite(raw)) { render(); return; }
+    update('measurements.' + k, design.units === 'cm' ? raw : raw * CM_PER_IN);
+  });
+}
+$('#sizePreset').addEventListener('change', (e) => {
+  const s = SIZES[e.target.value]; if (!s) return;
+  const n = clone(design); Object.assign(n.measurements, s); commit(n); e.target.value = ''; toast('Measurements set to an approximate US ' + Object.keys(SIZES).find(k => SIZES[k] === s));
+});
+$$('#unitSeg button').forEach(b => b.addEventListener('click', () => update('units', b.dataset.u, { noHistory: true, clean: true })));
+
+const fullEl = $('#fullness');
+fullEl.addEventListener('input', () => { design.fullness = +fullEl.value; $('#fullVal').textContent = fullEl.value; scheduleScene(); });
+fullEl.addEventListener('change', () => { hist.past.push(JSON.stringify(lastCommitted)); hist.future.length = 0; design.fullness = +fullEl.value; setDirty(true); render(); });
+const SHAPE_WORDS = { round: ['Shallow curve', 'Classic curve', 'U-shaped'], v: ['Straight sides', 'Softly curved', 'Curved sides'], square: ['Sharp corners', 'Soft corners', 'Rounded corners'], sweetheart: ['Subtle curves', 'Classic heart', 'Deep heart'] };
+const NECK_UI = [['depth', '#nkDepth', '#nkDepthVal', v => fmtLen(v) + ' at center front'], ['width', '#nkWidth', '#nkWidthVal', v => fmtLen(v) + ' across'], ['curve', '#nkCurve', '#nkCurveVal', v => SHAPE_WORDS[neckFamily(design)][v < 34 ? 0 : v < 67 ? 1 : 2]], ['backDepth', '#nkBackDepth', '#nkBackDepthVal', v => fmtLen(v) + ' at center back']];
+for (const [key, id, outId, fmt] of NECK_UI) {
+  const el = $(id);
+  el.addEventListener('input', () => { design.neck[key] = +el.value; $(outId).textContent = fmt(+el.value); scheduleScene(); });
+  el.addEventListener('change', () => { hist.past.push(JSON.stringify(lastCommitted)); hist.future.length = 0; design.neck[key] = +el.value; setDirty(true); render(); });
+}
+$$('#backSeg button').forEach(b => b.addEventListener('click', () => update('neck.back', b.dataset.b)));
+$('#nkReset').addEventListener('click', () => { const { family, ...np } = NECK_PRESETS[design.neckline]; update('neck', np); });
+const SLEEVE_UI = [['length', '#slLen', '#slLenVal', v => fmtLen(design.measurements.arm * v / 100) + ' from shoulder'], ['puff', '#slPuff', '#slPuffVal', v => v + '%'], ['flare', '#slFlare', '#slFlareVal', v => v + '%'], ['gather', '#slGather', '#slGatherVal', v => v + '%']];
+for (const [key, id, outId, fmt] of SLEEVE_UI) {
+  const el = $(id);
+  el.addEventListener('input', () => { design.sleeve[key] = +el.value; $(outId).textContent = fmt(+el.value); scheduleScene(); });
+  el.addEventListener('change', () => { hist.past.push(JSON.stringify(lastCommitted)); hist.future.length = 0; design.sleeve[key] = +el.value; setDirty(true); render(); });
+}
+$$('#cuffSeg button').forEach(b => b.addEventListener('click', () => update('sleeve.cuff', b.dataset.c)));
+$('#slReset').addEventListener('click', () => update('sleeve', { ...SLEEVE_PRESETS[design.sleeves] }));
+function bindPrintRange(el, key, out, fmt) {
+  el.addEventListener('input', () => { design.print[key] = +el.value; out.textContent = fmt(+el.value); refreshPrint(); });
+  el.addEventListener('change', () => { const v = +el.value; const prev = clone(lastCommitted); hist.past.push(JSON.stringify(prev)); hist.future.length = 0; design.print[key] = v; setDirty(true); render(); });
+}
+bindPrintRange($('#pScale'), 'scale', $('#scaleVal'), v => fmtLen(v));
+bindPrintRange($('#pDens'), 'density', $('#densVal'), v => v + '%');
+for (const [id, key] of [['#cBase', 'base'], ['#cInk1', 'ink1'], ['#cInk2', 'ink2']]) {
+  const el = $(id);
+  el.addEventListener('input', () => { design.print[key] = el.value.toUpperCase(); refreshPrint(); });
+  el.addEventListener('change', () => { const prev = clone(lastCommitted); hist.past.push(JSON.stringify(prev)); hist.future.length = 0; design.print[key] = el.value.toUpperCase(); setDirty(true); render(); });
+}
+$('#shuffleBtn').addEventListener('click', () => update('print.seed', (design.print.seed + 1 + Math.floor(Math.random() * 997)) % 100000));
+$('#morePrints').addEventListener('click', () => { showView('patterns'); showSub('prints'); });
+
+/* Panel tabs */
+$$('.controls .tabs button').forEach(b => b.addEventListener('click', () => {
+  $$('.controls .tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+  $$('.controls .pane').forEach(p => p.hidden = p.dataset.pane !== b.dataset.pane);
+}));
+/* Views */
+function showView(v) {
+  $$('.views button').forEach(b => b.setAttribute('aria-selected', b.dataset.view === v));
+  for (const id of ['studio', 'patterns', 'library']) $('#view-' + id).hidden = id !== v;
+  if (v === 'studio') { resizeStage(); }
+  if (v === 'patterns') renderPatterns();
+  if (v === 'library') renderLibrary();
+}
+$$('.views button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+function showSub(s) {
+  $$('.subtabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === s));
+  $$('[data-subpane]').forEach(p => p.hidden = p.dataset.subpane !== s);
+  renderPatterns();
+}
+$$('.subtabs button').forEach(b => b.addEventListener('click', () => showSub(b.dataset.sub)));
+
+$('#designName').addEventListener('change', (e) => update('name', e.target.value.trim() || 'Untitled dress'));
+$('#undoBtn').addEventListener('click', undo);
+$('#redoBtn').addEventListener('click', redo);
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+});
+$('#newBtn').addEventListener('click', () => {
+  const n = sanitize({ ...defaultDesign(), name: 'Untitled dress', measurements: design.measurements, units: design.units, print: { ...defaultDesign().print, type: 'solid', base: '#E9E1D2' } });
+  currentId = null; commit(n); toast('Started a new design. Your measurements carried over.');
+});
+
+let toastTimer;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3200); }
+
+/* Render the controls from state */
+let lastCommitted = clone(design);
+function render() {
+  lastCommitted = clone(design);
+  $$('.seg[data-key]').forEach(el => { const v = get(el.dataset.key); $$('button', el).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); });
+  $$('#unitSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.u === design.units));
+  $('#sleeveTune').hidden = ['strapless', 'sleeveless'].includes(design.sleeves);
+  $('#neckTune').hidden = design.sleeves === 'strapless'; $('#neckStraplessHint').hidden = design.sleeves !== 'strapless';
+  for (const [key, id, outId, fmt] of NECK_UI) { $(id).value = design.neck[key]; $(outId).textContent = fmt(design.neck[key]); }
+  $$('#backSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.b === design.neck.back));
+  $('#nkReset').disabled = !neckAdjusted(design);
+  for (const [key, id, outId, fmt] of SLEEVE_UI) { $(id).value = design.sleeve[key]; $(outId).textContent = fmt(design.sleeve[key]); }
+  $$('#cuffSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === design.sleeve.cuff));
+  $('#slReset').disabled = !sleeveAdjusted(design);
+  if (document.activeElement !== $('#designName')) $('#designName').value = design.name;
+  fullEl.value = design.fullness; $('#fullVal').textContent = design.fullness;
+  $('#pScale').value = design.print.scale; $('#scaleVal').textContent = fmtLen(design.print.scale);
+  $('#pDens').value = design.print.density; $('#densVal').textContent = design.print.density + '%';
+  $('#cBase').value = design.print.base.toLowerCase(); $('#cInk1').value = design.print.ink1.toLowerCase(); $('#cInk2').value = design.print.ink2.toLowerCase();
+  for (const [k] of MEAS_FIELDS) {
+    const el = $('#m_' + k); if (document.activeElement === el) continue;
+    const cm = design.measurements[k];
+    el.value = design.units === 'cm' ? Math.round(cm * 10) / 10 : Math.round(cm / CM_PER_IN * 4) / 4;
+    el.step = design.units === 'cm' ? '0.5' : '0.25';
+  }
+  $$('#measGrid label span').forEach((s, i) => s.textContent = `${MEAS_FIELDS[i][1]} (${design.units})`);
+  const E = EASE[design.fit];
+  $('#easeHint').textContent = `Adds ${fmtLen(E.b)} at the bust, ${fmtLen(E.w)} at the waist and ${fmtLen(E.h)} at the hip.`;
+  $('#undoBtn').disabled = !hist.past.length; $('#redoBtn').disabled = !hist.future.length;
+  const G = geomParams(design);
+  const skirtCm = (G.seamY - G.hemY) * 100;
+  $('#lenVal').textContent = `${fmtLen(skirtCm)} waist seam to hem`;
+  $('#specTitle').textContent = design.name;
+  $('#specLine').textContent = [labelOf('silhouette', design.silhouette), labelOf('neckline', design.neckline) + (neckAdjusted(design) ? ' (adjusted)' : ''), labelOf('sleeves', design.sleeves) + (['strapless', 'sleeveless'].includes(design.sleeves) ? '' : ' sleeve' + (sleeveAdjusted(design) ? ' (adjusted)' : '')), labelOf('length', design.length) + ' · ' + fmtLen(skirtCm) + ' skirt', labelOf('fabric', design.fabric)].join(' · ');
+  refreshPrint();
+  scheduleScene();
+  patternsStale = true;
+  if (!$('#view-patterns').hidden) renderPatterns();
+  saveDraft();
+}
+
+function refreshPrint() {
+  const c = $('#previewTile'), ctx = c.getContext('2d');
+  const tile = getTileCanvas(256);
+  ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, c.width, c.height);
+  updateFabricTexture();
+}
+const tileCache = {};
+function getTileCanvas(S) {
+  const key = S + JSON.stringify(design.print) + design.fabric;
+  if (tileCache[S] && tileCache[S].key === key) return tileCache[S].c;
+  const c = (tileCache[S] && tileCache[S].c) || document.createElement('canvas'); c.width = c.height = S;
+  drawPrint(c.getContext('2d'), S, design.print, design.fabric);
+  tileCache[S] = { key, c };
+  return c;
+}
+</script>
+
+<script>
+/* =====================================================================
+   3D STAGE — parametric dress on a dress form (Three.js)
+   ===================================================================== */
+const stage = $('#stage');
+let renderer, scene, camera, figure, formGroup, dressGroup, fabricMat, fabricTex, formMat, edgeMat;
+let yaw = 0.35, pitch = 0.06, dist = 4.4, targetYaw = null, spin = false, needsRender = true;
+let formKey = '';
+const texCanvas = document.createElement('canvas'); texCanvas.width = texCanvas.height = 512;
+
+function initThree() {
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  } catch (e) { renderer = null; }
+  if (!renderer || !window.THREE) {
+    const f = document.createElement('div'); f.className = 'webgl-fail'; f.textContent = 'The 3D view needs WebGL, which this browser has turned off. The pattern and library still work.'; stage.appendChild(f); return;
+  }
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  stage.prepend(renderer.domElement);
+  renderer.domElement.setAttribute('aria-label', '3D view of the dress. Drag to turn.');
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(28, 1, 0.05, 30);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a6, 0.72));
+  const key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(2.2, 3.6, 3.2); scene.add(key);
+  const fill = new THREE.DirectionalLight(0xe8eeff, 0.32); fill.position.set(-3, 2, 1.5); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.45); rim.position.set(0.5, 3, -3.5); scene.add(rim);
+  figure = new THREE.Group(); scene.add(figure);
+  formGroup = new THREE.Group(); dressGroup = new THREE.Group(); figure.add(formGroup, dressGroup);
+  formMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#E6DECF').convertSRGBToLinear(), roughness: 0.92 });
+  fabricTex = new THREE.CanvasTexture(texCanvas); fabricTex.wrapS = fabricTex.wrapT = THREE.RepeatWrapping; fabricTex.encoding = THREE.sRGBEncoding;
+  fabricTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  fabricMat = new THREE.MeshPhysicalMaterial({ map: fabricTex, side: THREE.DoubleSide, roughness: 0.8 });
+  edgeMat = fabricMat;
+  // floor shadow
+  const sc = document.createElement('canvas'); sc.width = sc.height = 128; const sx = sc.getContext('2d');
+  const g = sx.createRadialGradient(64, 64, 4, 64, 64, 64); g.addColorStop(0, 'rgba(0,0,0,0.32)'); g.addColorStop(0.55, 'rgba(0,0,0,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  sx.fillStyle = g; sx.fillRect(0, 0, 128, 128);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.002; scene.add(shadow);
+  bindOrbit();
+  new ResizeObserver(resizeStage).observe(stage);
+  resizeStage();
+  requestAnimationFrame(loop);
+}
+
+function resizeStage() {
+  if (!renderer) return;
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); needsRender = true;
+}
+function placeCamera() {
+  const H = design.measurements.height / 100;
+  const zoomT = clamp((4.4 - dist) / 2.6, 0, 1);
+  const ty = lerp(H * 0.5, H * 0.68, zoomT);
+  const fitDist = dist * Math.max(1, 0.75 / Math.max(0.3, camera.aspect)) * (H / 1.68);
+  camera.position.set(0, ty + Math.sin(pitch) * fitDist, Math.cos(pitch) * fitDist);
+  camera.lookAt(0, ty, 0);
+  figure.rotation.y = yaw;
+}
+let lastT = 0;
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000 || 0); lastT = t;
+  if (spin) { yaw += dt * 0.5; needsRender = true; }
+  if (targetYaw != null) {
+    let dv = ((targetYaw - yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+    if (Math.abs(dv) < 0.002 || reduceMotion) { yaw = targetYaw; targetYaw = null; } else yaw += dv * Math.min(1, dt * 9);
+    needsRender = true;
+  }
+  if (needsRender && renderer) { placeCamera(); renderer.render(scene, camera); needsRender = false; }
+  requestAnimationFrame(loop);
+}
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function bindOrbit() {
+  const el = renderer.domElement, pts = new Map(); let pinch0 = 0, dist0 = dist;
+  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); targetYaw = null; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = dist; } });
+  el.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) { yaw += (e.clientX - prev[0]) * 0.01; pitch = clamp(pitch + (e.clientY - prev[1]) * 0.004, -0.1, 0.6); }
+    else if (pts.size === 2) { const [a, b] = [...pts.values()]; const dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) dist = clamp(dist0 * pinch0 / dd, 1.6, 6); }
+    needsRender = true;
+  });
+  const up = e => { pts.delete(e.pointerId); pinch0 = 0; };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('wheel', e => { e.preventDefault(); dist = clamp(dist * Math.exp(e.deltaY * 0.0012), 1.6, 6); needsRender = true; }, { passive: false });
+  el.addEventListener('dblclick', () => { dist = 4.4; pitch = 0.06; targetYaw = 0.35; });
+}
+$$('#viewSeg button').forEach(b => b.addEventListener('click', () => { spin = false; $('#spinBtn').setAttribute('aria-pressed', 'false'); targetYaw = -deg(+b.dataset.yaw); }));
+$('#spinBtn').addEventListener('click', (e) => { spin = !spin; e.currentTarget.setAttribute('aria-pressed', spin); targetYaw = null; needsRender = true; });
+
+/* geometry helpers */
+function gridGeometry(rows, cols, P, UV, wrapNormals) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  if (UV) g.setAttribute('uv', new THREE.BufferAttribute(UV, 2));
+  const idx = [], W = cols + 1;
+  for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) { const a = i * W + j, b = a + W; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  g.setIndex(idx); g.computeVertexNormals();
+  if (wrapNormals) {
+    const N = g.attributes.normal.array;
+    for (let i = 0; i <= rows; i++) { const a = (i * W) * 3, b = (i * W + cols) * 3; for (let k = 0; k < 3; k++) { const v = (N[a + k] + N[b + k]) / 2; N[a + k] = N[b + k] = v; } }
+  }
+  return g;
+}
+function disposeGroup(g) { while (g.children.length) { const c = g.children.pop(); c.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } }
+
+function buildForm(B) {
+  disposeGroup(formGroup);
+  const s = B.s, m = B.m;
+  // torso
+  const rows = 70, cols = 64, P = new Float32Array((rows + 1) * (cols + 1) * 3);
+  const y0 = B.crotchY, y1 = B.neckBaseY;
+  for (let i = 0; i <= rows; i++) {
+    const y = lerp(y0, y1, i / rows), b = bodyAt(B, y);
+    for (let j = 0; j <= cols; j++) { const th = -Math.PI + 2 * Math.PI * j / cols, k = (i * (cols + 1) + j) * 3; P[k] = b.rx * Math.sin(th); P[k + 1] = y; P[k + 2] = b.rz * Math.cos(th) + b.zo; }
+  }
+  formGroup.add(new THREE.Mesh(gridGeometry(rows, cols, P, null, true), formMat));
+  const bot = bodyAt(B, y0), cap = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), formMat);
+  cap.scale.set(bot.rx, 0.04 * s, bot.rz); cap.position.set(0, y0, bot.zo); formGroup.add(cap);
+  // neck and head
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * s, 0.056 * s, 0.11 * s, 28), formMat); neck.position.set(0, B.neckBaseY + 0.04 * s, -0.008); formGroup.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.1 * s, 32, 24), formMat); head.scale.set(0.82, 1.08, 0.94); head.position.set(0, B.neckBaseY + 0.19 * s, 0.006); formGroup.add(head);
+  // legs
+  const legTop = B.crotchY + 0.05 * s, legLen = legTop - 0.05 * s;
+  for (const sx of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(B.hx * 0.38, 0.034 * s, legLen, 28), formMat);
+    leg.position.set(sx * B.hx * 0.47, legTop - legLen / 2, -0.005); leg.rotation.z = sx * 0.02; formGroup.add(leg);
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), formMat); foot.scale.set(0.036 * s, 0.03 * s, 0.1 * s); foot.position.set(sx * B.hx * 0.5, 0.03 * s, 0.04 * s); formGroup.add(foot);
+  }
+  // arms
+  const armLen = m.arm / 100, rTop = m.upperArm / (2 * Math.PI) / 100, rBot = 0.027 * s;
+  B.arm = { len: armLen, rTop, rBot, angle: deg(9), joint: [B.shR - rTop * 1.05, B.shoulderY - 0.02 * s] };
+  for (const sx of [-1, 1]) {
+    const grp = new THREE.Group(); grp.position.set(sx * B.arm.joint[0], B.arm.joint[1], -0.004); grp.rotation.z = sx * B.arm.angle;
+    const geo = new THREE.CylinderGeometry(rTop, rBot, armLen, 28); geo.translate(0, -armLen / 2, 0);
+    grp.add(new THREE.Mesh(geo, formMat));
+    const j = new THREE.Mesh(new THREE.SphereGeometry(rTop, 24, 16), formMat); grp.add(j);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), formMat); hand.scale.set(0.022 * s, 0.07 * s, 0.04 * s); hand.position.y = -armLen - 0.05 * s; grp.add(hand);
+    formGroup.add(grp);
+  }
+}
+
+const FABRIC_LOOK = {
+  cotton: { roughness: 0.82, clearcoat: 0, dark: 1 }, linen: { roughness: 0.93, clearcoat: 0, dark: 1 }, crepe: { roughness: 0.78, clearcoat: 0, dark: 1 },
+  silk: { roughness: 0.4, clearcoat: 0.18, dark: 1 }, satin: { roughness: 0.3, clearcoat: 0.4, dark: 1 }, velvet: { roughness: 1, clearcoat: 0, dark: 0.82 }
+};
+function updateFabricTexture() {
+  if (!renderer) return;
+  const ctx = texCanvas.getContext('2d');
+  drawPrint(ctx, 512, design.print, design.fabric);
+  fabricTex.needsUpdate = true;
+  const tile = (design.print.type === 'solid' ? 10 : design.print.scale) / 100;
+  fabricTex.repeat.set(1 / tile, 1 / tile);
+  const look = FABRIC_LOOK[design.fabric] || FABRIC_LOOK.cotton;
+  fabricMat.roughness = look.roughness; fabricMat.clearcoat = look.clearcoat; fabricMat.clearcoatRoughness = 0.45;
+  fabricMat.color.setScalar(look.dark);
+  needsRender = true;
+}
+
+function buildDress(G, d) {
+  disposeGroup(dressGroup);
+  const B = G.B, s = B.s, cols = 144, R1 = 72, R2 = 44, rows = R1 + R2, W = cols + 1;
+  const P = new Float32Array((rows + 1) * W * 3), UV = new Float32Array((rows + 1) * W * 2);
+  const pad = 0.004, bodiceCols = bodiceColumns(G, d, cols, pad);
+  const folds = d.silhouette === 'ballgown' ? 14 : 9 + Math.round(6 * G.f);
+  const flareSpan = G.flareStart != null ? Math.max(0.05, G.flareStart - G.hemY) : 1;
+  for (let i = 0; i <= rows; i++) {
+    let acc = 0, px = 0, py = 0, pz = 0;
+    let rowR = null, y = 0;
+    if (i <= R1) { y = lerp(G.hemY, G.seamY, i / R1); rowR = skirtAt(G, y); }
+    for (let j = 0; j <= cols; j++) {
+      const th = -Math.PI + 2 * Math.PI * j / cols;
+      let x, yy, z;
+      if (i <= R1) {
+        const r = rowR; yy = y;
+        let fold = 1;
+        if (r.A > 0) {
+          const depth = clamp((G.flareStart - yy) / flareSpan, 0, 1);
+          const amp = Math.min(0.1, 0.3 * r.A / (r.rx + 0.01)) * Math.pow(depth, 1.1);
+          fold = 1 + amp * Math.sin(folds * th + 0.7 * Math.sin(2 * th + 1.3));
+        }
+        x = (r.rx + pad) * Math.sin(th) * fold; z = ((r.rz + pad) * Math.cos(th)) * fold + r.zo;
+      } else { [x, yy, z] = bodiceCols[j]((i - R1) / R2); }
+      const k = (i * W + j) * 3; P[k] = x; P[k + 1] = yy; P[k + 2] = z;
+      if (j > 0) acc += Math.hypot(x - px, yy - py, z - pz);
+      px = x; py = yy; pz = z;
+      UV[(i * W + j) * 2] = acc; UV[(i * W + j) * 2 + 1] = yy;
+    }
+    // front panel measured from center front, back panels from center back: grain is straight at both centers
+    const mid = UV[(i * W + cols / 2) * 2], end = UV[(i * W + cols) * 2];
+    for (let j = 0; j <= cols; j++) UV[(i * W + j) * 2] -= j <= cols / 4 ? 0 : j >= 3 * cols / 4 ? end : mid;
+  }
+  const geo = gridGeometry(rows, cols, P, UV, true);
+  dressGroup.add(new THREE.Mesh(geo, fabricMat));
+  // rolled edges at hem, top and waist seam
+  const ring = (i, r) => { const pts = []; for (let j = 0; j < cols; j++) { const k = (i * W + j) * 3; pts.push(new THREE.Vector3(P[k], P[k + 1], P[k + 2])); } return new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true, 'centripetal'), cols * 2, r, 6, true), edgeMat); };
+  dressGroup.add(ring(0, 0.004), ring(rows, 0.0035), ring(R1, 0.003));
+  // sleeveless: a band of fabric lying on the shoulder top, from the armhole to the neckline
+  if (d.sleeves === 'sleeveless') {
+    const nwM = G.neck.nw / 100, yOut = lerp(B.shoulderY, B.shTopY, 0.35), n = 24, m = 6;
+    for (const sx of [-1, 1]) {
+      const P2 = new Float32Array((n + 1) * (m + 1) * 3), U2 = new Float32Array((n + 1) * (m + 1) * 2);
+      for (let i = 0; i <= n; i++) {
+        const th = sx * lerp(0.36 * Math.PI, 0.64 * Math.PI, i / n), sn = Math.abs(Math.sin(th));
+        let lo = yOut, hi = B.neckBaseY;
+        for (let it = 0; it < 20; it++) { const mid = (lo + hi) / 2, r = bodiceAt(G, mid); if ((r.rx + pad) * sn > nwM + 0.006) lo = mid; else hi = mid; }
+        for (let e = 0; e <= m; e++) {
+          const yy = lerp(yOut, lo, e / m), r = bodiceAt(G, yy), k = (i * (m + 1) + e) * 3, lift = 0.0015;
+          P2[k] = (r.rx + pad + lift) * Math.sin(th); P2[k + 1] = yy; P2[k + 2] = (r.rz + pad + lift) * Math.cos(th) + r.zo;
+          U2[(i * (m + 1) + e) * 2] = P2[k + 2]; U2[(i * (m + 1) + e) * 2 + 1] = P2[k] * sx;
+        }
+      }
+      dressGroup.add(new THREE.Mesh(gridGeometry(n, m, P2, U2, false), fabricMat));
+    }
+  }
+  // sleeves
+  if (!['strapless', 'sleeveless'].includes(d.sleeves) && B.arm) {
+    const A = B.arm, sv = d.sleeve, L = Math.max(0.05, A.len * sv.length / 100 - 0.005);
+    const SP = sv.puff / 100, SF = sv.flare / 100, SG = sv.gather / 100, band = sv.cuff === 'band', capZone = Math.min(L, 0.2 * s);
+    const rowsS = 40, colsS = 40, t0 = -0.045 * s;
+    for (const sx of [-1, 1]) {
+      const P3 = new Float32Array((rowsS + 1) * (colsS + 1) * 3), U3 = new Float32Array((rowsS + 1) * (colsS + 1) * 2);
+      for (let i = 0; i <= rowsS; i++) {
+        const t = lerp(t0, L, i / rowsS), u = clamp(t / A.len, 0, 1);
+        let r = lerp(A.rTop, A.rBot, u) * 1.12 + 0.005;
+        if (t < 0) r = Math.max(r, A.rTop * 1.12 + 0.005) * Math.sqrt(Math.max(0.15, 1 - Math.pow(t / (t0 * 1.15), 2)));
+        const tt = clamp(t / L, 0, 1);
+        const fitted = r;
+        if (SP) r += 0.042 * s * SP * Math.pow(Math.sin(Math.PI * clamp((t - t0) / (capZone - t0), 0, 1)), 0.8);
+        if (SF) r *= 1 + 1.7 * SF * Math.pow(smooth(0, 1, tt), 1.3) * (band ? 1 - smooth(0.85, 0.95, tt) : 1);
+        if (SG) r += 0.034 * s * SG * smooth(0.25, 0.85, tt) * (band ? 1 - smooth(0.88, 0.97, tt) : 1 - 0.5 * smooth(0.9, 1, tt));
+        if (band && tt > 0.93) r = Math.min(r, fitted * 1.08);
+        const wave = SF > 0.3 ? 0.08 * SF * tt * tt : 0;
+        for (let j = 0; j <= colsS; j++) {
+          const a = 2 * Math.PI * j / colsS, k = (i * (colsS + 1) + j) * 3;
+          const rw = r * (1 + wave * Math.sin(10 * a));
+          P3[k] = rw * Math.sin(a); P3[k + 1] = -t; P3[k + 2] = rw * Math.cos(a);
+          U3[(i * (colsS + 1) + j) * 2] = a * r; U3[(i * (colsS + 1) + j) * 2 + 1] = -t;
+        }
+      }
+      const grp = new THREE.Group(); grp.position.set(sx * A.joint[0], A.joint[1], -0.004); grp.rotation.z = sx * A.angle;
+      grp.add(new THREE.Mesh(gridGeometry(rowsS, colsS, P3, U3, true), fabricMat));
+      const hemPts = []; for (let j = 0; j < colsS; j++) { const k = (rowsS * (colsS + 1) + j) * 3; hemPts.push(new THREE.Vector3(P3[k], P3[k + 1], P3[k + 2])); }
+      grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hemPts, true), 60, 0.0035, 6, true), edgeMat));
+      dressGroup.add(grp);
+    }
+  }
+  needsRender = true;
+}
+
+let sceneQueued = false;
+function scheduleScene() { if (sceneQueued || !renderer) return; sceneQueued = true; requestAnimationFrame(() => { sceneQueued = false; rebuildScene(); }); }
+function rebuildScene() {
+  const G = geomParams(design);
+  const fk = JSON.stringify(design.measurements);
+  if (fk !== formKey) { buildForm(G.B); formKey = fk; } else G.B.arm = lastArm;
+  lastArm = G.B.arm;
+  buildDress(G, design);
+}
+let lastArm = null;
+
+function captureThumb() {
+  if (!renderer) return '';
+  const sy = yaw, sp = pitch, sd = dist, st = targetYaw; yaw = 0.3; pitch = 0.06; dist = 4.4; targetYaw = null;
+  placeCamera(); renderer.render(scene, camera);
+  const src = renderer.domElement, w = src.width, h = src.height;
+  const tw = 240, th = 300, c = document.createElement('canvas'); c.width = tw; c.height = th;
+  const ctx = c.getContext('2d');
+  const ch = h * 0.98, cw = ch * tw / th, cx = (w - cw) / 2;
+  ctx.drawImage(src, Math.max(0, cx), h * 0.01, Math.min(cw, w), ch, 0, 0, tw, th);
+  yaw = sy; pitch = sp; dist = sd; targetYaw = st; needsRender = true;
+  try { return c.toDataURL('image/webp', 0.82); } catch (e) { return ''; }
+}
+</script>
+
+<script>
+/* =====================================================================
+   PATTERNS VIEW — sheet rendering and export
+   ===================================================================== */
+let patternsStale = true, sheetZoom = 0, lastPattern = null, lastLayout = null;
+
+function pieceItems(it, ox, oy, forPrint) {
+  const p = it.p, X = (q) => [q[0] + it.x + ox, q[1] + it.y + oy], items = [];
+  items.push({ k: 'poly', pts: p.cutPts.map(X), closed: true, cls: 'cut' });
+  // stitching line, leaving out fold edges
+  let run = [];
+  const n = p.pts.length;
+  for (let i = 0; i <= n; i++) {
+    const kind = p.kinds[i % n];
+    if (i < n && kind !== 'fold' && !p.sewn) { if (!run.length) run.push(X(p.pts[i])); run.push(X(p.pts[(i + 1) % n])); }
+    else if (run.length) { items.push({ k: 'poly', pts: run, cls: 'stitch' }); run = []; }
+  }
+  if (run.length) items.push({ k: 'poly', pts: run, cls: 'stitch' });
+  for (const mk of p.marks || []) items.push({ k: 'poly', pts: mk.pts.map(X), cls: 'dart' });
+  for (const nt of p.notches || []) {
+    const nrm = [-nt.dir[1], nt.dir[0]], L = 1.6;
+    for (let c = 0; c < nt.count; c++) {
+      const off = (c - (nt.count - 1) / 2) * 0.5, b = [nt.p[0] + nt.dir[0] * off, nt.p[1] + nt.dir[1] * off];
+      items.push({ k: 'poly', pts: [X([b[0] - nrm[0] * L, b[1] - nrm[1] * L]), X([b[0] + nrm[0] * L, b[1] + nrm[1] * L])], cls: 'notch' });
+    }
+  }
+  for (const dt of p.dots || []) { const q = X(dt); items.push({ k: 'dot', x: q[0], y: q[1], r: 0.35 }); }
+  // grainline
+  const [g0, g1] = p.grain.map(X), dx = g1[0] - g0[0], dy = g1[1] - g0[1], gl = Math.hypot(dx, dy) || 1, ux = dx / gl, uy = dy / gl, ah = 1.2;
+  items.push({ k: 'poly', pts: [g0, g1], cls: 'grain' });
+  for (const [tip, sgn] of [[g0, 1], [g1, -1]]) items.push({ k: 'poly', pts: [tip, [tip[0] + sgn * ux * ah - uy * ah * 0.4, tip[1] + sgn * uy * ah + ux * ah * 0.4], [tip[0] + sgn * ux * ah + uy * ah * 0.4, tip[1] + sgn * uy * ah - ux * ah * 0.4]], closed: true, cls: 'arrow' });
+  // fold bracket
+  if (p.fold) {
+    const ys = p.pts.filter((q, i) => p.kinds[i] === 'fold').map(q => q[1]);
+    const y0 = Math.min(...ys) + 3, y1 = Math.max(...p.pts.map(q => q[1])) - 3, bx = 2.2;
+    const mid = (y0 + y1) / 2, span = Math.min(14, (y1 - y0) * 0.6);
+    items.push({ k: 'poly', pts: [X([0.2, mid - span / 2]), X([bx, mid - span / 2]), X([bx, mid + span / 2]), X([0.2, mid + span / 2])], cls: 'fold' });
+    items.push({ k: 'text', x: X([bx + 1.4, mid])[0], y: X([bx + 1.4, mid])[1], s: 'PLACE ON FOLD', size: 0.9, rot: -90, anchor: 'middle', cls: 'pin' });
+  }
+  // label
+  const bb = bbox(p.pts), w = bb.w, cxl = (p.fold || /front|back/.test(p.name)) ? Math.max(bb.x0 + w * 0.62, 6) : bb.x0 + w / 2;
+  const fs = forPrint ? clamp(Math.min(w, bb.h) / 14, 0.45, 1.1) : clamp(Math.min(w, bb.h) / 9, 0.7, 2.2), cy = bb.y0 + bb.h * (p.name.startsWith('Skirt') || p.name.startsWith('Flare') ? 0.45 : 0.62);
+  const L0 = X([cxl, cy]);
+  items.push({ k: 'text', x: L0[0], y: L0[1] - fs * 1.4, s: p.id, size: fs * 1.9, anchor: 'middle', cls: 'pid' });
+  items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 0.4, s: p.name, size: fs, anchor: 'middle', bold: true });
+  items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 1.7, s: p.cut + (p.note ? ' · ' + p.note : ''), size: fs * 0.72, anchor: 'middle', cls: 'muted' });
+  return items;
+}
+function sheetItems(lay, pat, forPrint) {
+  const items = [];
+  let oy = 0;
+  if (forPrint) {
+    // Header sized to fit the first page of a Letter or A4 print, so the test squares are never split.
+    const d = design, mm = d.measurements, u = d.units;
+    const wrap = (txt, max) => { const out = []; let line = ''; for (const w of txt.split(' ')) { if ((line + ' ' + w).trim().length > max && line) { out.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) out.push(line.trim()); return out; };
+    let y = 1.6;
+    items.push({ k: 'text', x: 0.5, y, s: d.name, size: 0.8, bold: true }); y += 0.9;
+    items.push({ k: 'text', x: 0.5, y, s: 'Muslin Studio sewing pattern', size: 0.42, cls: 'muted' }); y += 1;
+    const ms = MEAS_FIELDS.map(([k, lab]) => `${lab} ${u === 'cm' ? Math.round(mm[k] * 10) / 10 + ' cm' : (Math.round(mm[k] / CM_PER_IN * 4) / 4) + ' in'}`).join(' · ');
+    const lines = [
+      ...wrap(`${labelOf('silhouette', d.silhouette)}, ${labelOf('neckline', d.neckline)} neckline, ${labelOf('sleeves', d.sleeves)} sleeves, ${labelOf('length', d.length)} length, ${labelOf('waist', d.waist)} waist.`, 76),
+      ...wrap('Measurements: ' + ms, 76),
+      ...wrap(`Seam allowance ${patOpts.sa} cm is included at the cutting line; the dashed line is the stitching line. Fabric: ${lastLayout.yards} yd (${lastLayout.meters} m) of ${fabricIn()} in wide.`, 76)
+    ];
+    for (const l of lines) { items.push({ k: 'text', x: 0.5, y, s: l, size: 0.36 }); y += 0.58; }
+    y += 0.5;
+    items.push({ k: 'poly', pts: [[0.5, y], [5.5, y], [5.5, y + 5], [0.5, y + 5], [0.5, y]], cls: 'cut' });
+    items.push({ k: 'text', x: 3, y: y + 2.7, s: '5 cm', size: 0.6, anchor: 'middle', bold: true });
+    items.push({ k: 'poly', pts: [[7.5, y], [12.58, y], [12.58, y + 5.08], [7.5, y + 5.08], [7.5, y]], cls: 'cut' });
+    items.push({ k: 'text', x: 10.04, y: y + 2.7, s: '2 in', size: 0.6, anchor: 'middle', bold: true });
+    y += 5.9;
+    items.push({ k: 'text', x: 0.5, y, s: 'Print at 100% (actual size) and measure both squares before cutting.', size: 0.36 }); y += 0.58;
+    items.push({ k: 'text', x: 0.5, y, s: 'Trim one edge of each page and tape pages edge to edge, row by row.', size: 0.36 });
+    oy = y + 1.6;
+  }
+  items.push({ k: 'poly', pts: [[0, oy], [0, oy + lay.len + 2]], cls: 'foldline' });
+  items.push({ k: 'text', x: -0.6, y: oy + 10, s: 'FOLD', size: 0.9, rot: -90, anchor: 'middle', cls: 'pin' });
+  for (const it of lay.items) items.push(...pieceItems(it, 0, oy + 1, forPrint));
+  return { items, w: Math.max(lay.Wf, ...lay.items.map(i => i.x + i.p.box.x1)) + 2, h: oy + lay.len + 4 };
+}
+function svgString(sheet, forPrint, pxPerCm) {
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const PRINT = { cut: 'fill="none" stroke="#000" stroke-width="0.05"', stitch: 'fill="none" stroke="#555" stroke-width="0.025" stroke-dasharray="0.4 0.25"', dart: 'fill="none" stroke="#c4102b" stroke-width="0.03"', grain: 'fill="none" stroke="#000" stroke-width="0.03"', arrow: 'fill="#000"', notch: 'fill="none" stroke="#000" stroke-width="0.04"', fold: 'fill="none" stroke="#c4102b" stroke-width="0.035"', foldline: 'fill="none" stroke="#c4102b" stroke-width="0.04" stroke-dasharray="0.6 0.4"', none: 'fill="none" stroke="none"' };
+  const x0 = -2, y0 = -1, W = sheet.w + 3, H = sheet.h + 1;
+  let out = forPrint
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="${W}cm" height="${H}cm" viewBox="${x0} ${y0} ${W} ${H}">`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="${W * pxPerCm}" height="${H * pxPerCm}" viewBox="${x0} ${y0} ${W} ${H}"><defs><pattern id="dots" width="2" height="2" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.09" style="fill:var(--dot)"/></pattern></defs><rect class="fabric" vector-effect="non-scaling-stroke" x="0" y="0" width="${lastLayout.Wf}" height="${lastLayout.len + 2}"/>`;
+  for (const it of sheet.items) {
+    if (it.k === 'poly') {
+      const d = it.pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join('') + (it.closed ? 'Z' : '');
+      out += forPrint ? `<path d="${d}" ${PRINT[it.cls] || PRINT.cut}/>` : `<path d="${d}" class="${it.cls}" vector-effect="non-scaling-stroke"/>`;
+    } else if (it.k === 'dot') out += `<circle cx="${it.x}" cy="${it.y}" r="${it.r}" ${forPrint ? 'fill="#000"' : 'class="dotmark"'}/>`;
+    else if (it.k === 'text') {
+      const fill = forPrint ? ` fill="${it.cls === 'pin' ? '#c4102b' : it.cls === 'muted' ? '#444' : '#000'}" font-family="Helvetica, Arial, sans-serif" stroke="#fff" stroke-width="0.12" paint-order="stroke"` : '';
+      out += `<text x="${it.x.toFixed(2)}" y="${it.y.toFixed(2)}" font-size="${it.size}"${it.bold ? ' font-weight="600"' : ''} text-anchor="${it.anchor || 'start'}"${it.cls ? ` class="${it.cls}"` : ''}${fill}${it.rot ? ` transform="rotate(${it.rot} ${it.x.toFixed(2)} ${it.y.toFixed(2)})"` : ''}>${esc(it.s)}</text>`;
+    }
+  }
+  if (!forPrint) out += `<text x="${lastLayout.Wf - 0.6}" y="10" font-size="0.9" class="muted" text-anchor="middle" transform="rotate(90 ${lastLayout.Wf - 0.6} 10)">SELVAGES</text>`;
+  return out + '</svg>';
+}
+
+function renderPatterns() {
+  if ($('#view-patterns').hidden) return;
+  const sub = $$('.subtabs button').find(b => b.getAttribute('aria-selected') === 'true').dataset.sub;
+  if (sub === 'prints') { renderPrintGrids(); return; }
+  if (!patternsStale && lastPattern) return;
+  patternsStale = false;
+  const pat = draftPattern(design, patOpts.sa), lay = layoutPieces(pat, patOpts.fabricW);
+  lastPattern = pat; lastLayout = lay;
+  $('#patTitle').textContent = design.name;
+  $('#patSummary').textContent = `${pat.pieces.length} pieces · bodice ${fmtLen(pat.bodiceLen)} from shoulder to waist seam at center front · skirt ${fmtLen(pat.skirtLen)} from waist seam to hem.`;
+  $('#pieceList').innerHTML = pat.pieces.map(p => `<li><span class="pid">${p.id}</span><span>${p.name}</span><span class="cut">${p.cut}</span></li>`).join('');
+  $('#yardage').innerHTML = `${lay.yards} yd<small>${lay.meters} m of ${fabricIn()}-inch fabric, folded selvage to selvage, plus 10% for shrinkage and squaring. Add more for matching stripes or one-way prints.</small>`;
+  const warn = [...pat.notes]; if (lay.over) warn.push(`Some pieces are wider than the folded fabric. Choose a wider fabric, or cut those pieces on single layer.`);
+  $('#patWarn').hidden = !warn.length; $('#patWarn').textContent = warn.join(' ');
+  $$('#fabWSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.w === patOpts.fabricW));
+  $$('#saSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.sa === patOpts.sa));
+  drawSheet();
+}
+function drawSheet() {
+  if (!lastLayout) return;
+  const wrap = $('#sheetWrap');
+  const sheet = sheetItems(lastLayout, lastPattern, false);
+  const fit = clamp(Math.min((wrap.clientWidth - 40) / (sheet.w + 3), (wrap.clientHeight - 40) / (sheet.h + 1) * 1.6), 4, 14);
+  lastFit = fit; const px = sheetZoom ? sheetZoom : fit;
+  $('#zoomVal').textContent = `${Math.round(px / 37.8 * 100)}%`;
+  wrap.innerHTML = svgString(sheet, false, px);
+}
+let lastFit = 6;
+$('#zoomIn').addEventListener('click', () => { sheetZoom = Math.min(40, (sheetZoom || lastFit) * 1.4); drawSheet(); });
+$('#zoomOut').addEventListener('click', () => { sheetZoom = Math.max(2, (sheetZoom || lastFit) / 1.4); drawSheet(); });
+$$('#fabWSeg button').forEach(b => b.addEventListener('click', () => { patOpts.fabricW = +b.dataset.w; patternsStale = true; renderPatterns(); }));
+$$('#saSeg button').forEach(b => b.addEventListener('click', () => { patOpts.sa = +b.dataset.sa; patternsStale = true; renderPatterns(); }));
+new ResizeObserver(() => { if (!$('#view-patterns').hidden && !sheetZoom) drawSheet(); }).observe($('#sheetWrap'));
+
+const fabricIn = () => ({ 112: 44, 137: 54, 150: 60 }[patOpts.fabricW] || Math.round(patOpts.fabricW / CM_PER_IN));
+function slug(s) { return (s || 'dress').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'dress'; }
+function loadScript(src) { return new Promise((res, rej) => { if ([...document.scripts].some(s => s.src === src)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function saveFileWithToast(name, data, okMsg) {
+  try { await Platform.saveFile(name, data); toast(okMsg); }
+  catch (e) {
+    const c = e && e.code;
+    if (c === 'declined') return;
+    if (c === 'rate_limited') toast('A download prompt is already open.');
+    else toast('The file could not be saved. Try again.');
+  }
+}
+$$('[data-export]').forEach(b => b.addEventListener('click', async () => {
+  if (!lastLayout) renderPatterns();
+  const kind = b.dataset.export, sheet = sheetItems(lastLayout, lastPattern, true), base = slug(design.name) + '-pattern';
+  if (kind === 'svg') { await saveFileWithToast(base + '.svg', svgString(sheet, true), 'Pattern saved as full-size SVG.'); return; }
+  b.disabled = true; const old = b.textContent; b.textContent = 'Building PDF…';
+  try {
+    if (!window.jspdf) await loadScript('vendor/jspdf.umd.min.js');
+    const blob = buildPDF(sheet, kind);
+    await saveFileWithToast(`${base}-${kind}.pdf`, blob, 'Tiled PDF saved. Print at 100% scale.');
+  } catch (e) { toast('The PDF could not be built. Try the SVG download instead.'); }
+  finally { b.disabled = false; b.textContent = old; }
+}));
+function buildPDF(sheet, paper) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'cm', format: paper === 'a4' ? 'a4' : 'letter' });
+  const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+  const m = 1, top = 1.4, cw = pw - 2 * m, ch = ph - top - m;
+  const ox = -2, oy = -1, W = sheet.w + 3, H = sheet.h + 1;
+  const cols = Math.ceil(W / cw), rows = Math.ceil(H / ch);
+  const fontPt = (cm) => cm / 2.54 * 72;
+  let first = true;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    if (!first) doc.addPage(); first = false;
+    const sx = ox + c * cw, sy = oy + r * ch;
+    const tx = (x) => m + (x - sx), ty = (y) => top + (y - sy);
+    doc.setTextColor(90); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.text(`${design.name}  ·  Row ${String.fromCharCode(65 + r)}, column ${c + 1}  (${rows} x ${cols} pages)`, m, 0.8);
+    doc.setDrawColor(170); doc.setLineWidth(0.01); doc.setLineDashPattern([0.15, 0.15], 0); doc.rect(m, top, cw, ch); doc.setLineDashPattern([], 0);
+    let clipped = false;
+    try { doc.saveGraphicsState(); doc.rect(m, top, cw, ch, null); doc.clip(); doc.discardPath(); clipped = true; } catch (e) {}
+    for (const it of sheet.items) {
+      if (it.k === 'poly') {
+        if (it.cls === 'none' || it.pts.length < 2) continue;
+        let a = Infinity, b = Infinity, cc = -Infinity, dd = -Infinity; for (const p of it.pts) { a = Math.min(a, p[0]); b = Math.min(b, p[1]); cc = Math.max(cc, p[0]); dd = Math.max(dd, p[1]); }
+        if (cc < sx || a > sx + cw || dd < sy || b > sy + ch) continue;
+        const st = { cut: [0, 0.05, null], stitch: [85, 0.025, [0.4, 0.25]], dart: [[196, 16, 43], 0.03, null], grain: [0, 0.03, null], arrow: [0, 0.02, null], notch: [0, 0.04, null], fold: [[196, 16, 43], 0.035, null], foldline: [[196, 16, 43], 0.04, [0.6, 0.4]] }[it.cls] || [0, 0.04, null];
+        if (Array.isArray(st[0])) doc.setDrawColor(...st[0]); else doc.setDrawColor(st[0]);
+        doc.setLineWidth(st[1]); doc.setLineDashPattern(st[2] || [], 0);
+        const deltas = []; for (let i = 1; i < it.pts.length; i++) deltas.push([it.pts[i][0] - it.pts[i - 1][0], it.pts[i][1] - it.pts[i - 1][1]]);
+        if (it.cls === 'arrow') { doc.setFillColor(0); doc.lines(deltas, tx(it.pts[0][0]), ty(it.pts[0][1]), [1, 1], 'F', true); }
+        else doc.lines(deltas, tx(it.pts[0][0]), ty(it.pts[0][1]), [1, 1], 'S', !!it.closed);
+        doc.setLineDashPattern([], 0);
+      } else if (it.k === 'dot') {
+        if (it.x < sx || it.x > sx + cw || it.y < sy || it.y > sy + ch) continue;
+        doc.setFillColor(0); doc.circle(tx(it.x), ty(it.y), it.r, 'F');
+      } else if (it.k === 'text') {
+        if (it.x < sx - 30 || it.x > sx + cw + 30 || it.y < sy - 30 || it.y > sy + ch + 30) continue;
+        if (it.cls === 'pin') doc.setTextColor(196, 16, 43); else if (it.cls === 'muted') doc.setTextColor(70); else doc.setTextColor(0);
+        doc.setFont('helvetica', it.bold || it.cls === 'pid' ? 'bold' : 'normal'); doc.setFontSize(fontPt(it.size));
+        const str = String(it.s).replace(/[^\x20-\x7E·—]/g, '');
+        if (it.rot) { const w = it.anchor === 'middle' ? doc.getTextWidth(str) / 2 : 0; doc.text(str, tx(it.x), ty(it.y) + (it.rot < 0 ? w : -w), { angle: -it.rot }); }
+        else doc.text(str, tx(it.x), ty(it.y), { align: it.anchor === 'middle' ? 'center' : 'left' });
+      }
+    }
+    if (clipped) doc.restoreGraphicsState();
+  }
+  return doc.output('blob');
+}
+
+/* Print variations */
+function printCard(p, label, onPick, selected) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'print-card'; b.setAttribute('aria-pressed', !!selected);
+  const c = document.createElement('canvas'); c.width = c.height = 320; b.appendChild(c);
+  const tile = document.createElement('canvas'); tile.width = tile.height = 256; drawPrint(tile.getContext('2d'), 256, p, design.fabric);
+  const ctx = c.getContext('2d'); ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, 320, 320);
+  const sp = document.createElement('span'); sp.textContent = label; b.appendChild(sp);
+  b.addEventListener('click', onPick); return b;
+}
+let variationSeed = 1;
+function renderPrintGrids() {
+  const vg = $('#printVariations'), tg = $('#printTypes'); vg.innerHTML = ''; tg.innerHTML = '';
+  const cur = design.print, rng = mulberry32(variationSeed * 31 + cur.seed);
+  for (let i = 0; i < 12; i++) {
+    const pal = i < 4 ? [cur.base, cur.ink1, cur.ink2] : PALETTES[Math.floor(rng() * PALETTES.length)].slice(1);
+    const p = { ...cur, base: pal[0], ink1: pal[1], ink2: pal[2], seed: Math.floor(rng() * 100000), density: clamp(Math.round(cur.density + (rng() - 0.5) * 50), 5, 95), type: cur.type === 'solid' ? 'floral' : cur.type };
+    vg.appendChild(printCard(p, `${labelOf('print.type', p.type)} · ${p.density}% density`, () => { const n = clone(design); n.print = p; commit(n); toast('Print applied to the dress.'); renderPrintGrids(); }));
+  }
+  for (const [t, lab] of OPTS['print.type']) {
+    const p = { ...cur, type: t };
+    tg.appendChild(printCard(p, lab, () => { update('print.type', t); renderPrintGrids(); }, cur.type === t));
+  }
+}
+$('#regenPrints').addEventListener('click', () => { variationSeed++; renderPrintGrids(); });
+$('#dlTile').addEventListener('click', () => {
+  const c = document.createElement('canvas'); c.width = c.height = 1024; drawPrint(c.getContext('2d'), 1024, design.print, design.fabric);
+  c.toBlob(bl => bl && saveFileWithToast(`${slug(design.name)}-${design.print.type}-tile.png`, bl, 'Print tile saved. It repeats seamlessly.'), 'image/png');
+});
+</script>
+
+<script>
+/* =====================================================================
+   LIBRARY
+   ===================================================================== */
+let libDocs = [], libState = 'loading', libUnsub = null, pendingOpen = null, pendingDelete = null;
+async function initLibrary() {
+  const ok = await Platform.libraryAvailable();
+  if (!ok) { libState = 'unavailable'; renderLibrary(); return; }
+  const timer = setTimeout(() => { if (libState === 'loading') { libState = 'slow'; renderLibrary(); } }, 10000);
+  libUnsub = await Platform.watchLibrary((list, fromCache) => {
+    libDocs = list.filter(d => d && d.design).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (!fromCache) clearTimeout(timer);
+    if (fromCache && !list.length) return;
+    libState = 'ready'; renderLibrary();
+  }, err => { clearTimeout(timer); libState = 'error'; renderLibrary(); });
+}
+function renderLibrary() {
+  if ($('#view-library').hidden) return;
+  const st = $('#libStatus');
+  st.textContent = {
+    loading: 'Loading your designs…', slow: 'Your library is taking a while to load. It will appear here when it arrives.',
+    unavailable: 'This browser isn’t letting the app store designs (private browsing can do this). You can still export and import design files.',
+    error: 'Your library could not be loaded. Reopen the page to try again; export a design file to keep a copy.',
+    ready: 'Designs are saved in this browser on this device. Export a design file to back one up or move it to another device.'
+  }[libState] + (Platform.isIOS && !Platform.standalone && libState === 'ready' ? ' On iPhone, add this site to your Home Screen (Share, then Add to Home Screen) so Safari keeps your library.' : '');
+  const grid = $('#libGrid'); grid.innerHTML = '';
+  if (libState === 'ready' && !libDocs.length) grid.innerHTML = '<div class="empty">No saved designs yet. Press Save in the top bar to keep this one here.</div>';
+  for (const doc of libDocs) {
+    const card = document.createElement('div'); card.className = 'lib-card';
+    const d = sanitize(doc.design);
+    const when = doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    card.innerHTML = `<div class="thumb">${doc.thumb ? `<img alt="" src="${doc.thumb}">` : ''}</div><div class="meta">${doc.id === currentId ? '<span class="tag">Open now</span>' : ''}<h4></h4><div class="sub"></div><div class="row"></div></div>`;
+    if (!doc.thumb) card.querySelector('.thumb').appendChild(swatchCanvas(d));
+    card.querySelector('h4').textContent = doc.name || d.name;
+    card.querySelector('.sub').textContent = `${labelOf('silhouette', d.silhouette)} · ${labelOf('length', d.length)} · ${when}`;
+    const row = card.querySelector('.row');
+    if (pendingDelete === doc.id) {
+      row.append(btn('Delete for good', 'btn small danger', async () => { try { await Platform.deleteDesign(doc.id); if (currentId === doc.id) { currentId = null; setDirty(true); } toast('Design deleted.'); } catch (e) { toast('The design could not be deleted. Try again.'); } pendingDelete = null; renderLibrary(); }), btn('Keep', 'btn small', () => { pendingDelete = null; renderLibrary(); }));
+    } else {
+      row.append(
+        btn(pendingOpen === doc.id ? 'Discard changes and open' : 'Open', 'btn small primary', () => openDesign(doc.id, d)),
+        btn('Duplicate', 'btn small', async () => { try { await Platform.saveDesign(null, { name: (doc.name || d.name) + ' copy', design: { ...d, name: d.name + ' copy' }, thumb: doc.thumb || '', updatedAt: Date.now() }); toast('Duplicated.'); } catch (e) { toast(saveErr(e)); } }),
+        btn('Delete', 'btn small ghost', () => { pendingDelete = doc.id; renderLibrary(); })
+      );
+    }
+    grid.appendChild(card);
+  }
+  const sg = $('#starterGrid'); sg.innerHTML = '';
+  STARTERS.forEach((s, i) => {
+    const d = sanitize(s.design), card = document.createElement('div'); card.className = 'lib-card';
+    card.innerHTML = `<div class="thumb"></div><div class="meta"><span class="tag">${s.tag}</span><h4></h4><div class="sub"></div><div class="row"></div></div>`;
+    card.querySelector('.thumb').appendChild(swatchCanvas(d));
+    card.querySelector('h4').textContent = d.name;
+    card.querySelector('.sub').textContent = `${labelOf('silhouette', d.silhouette)} · ${labelOf('neckline', d.neckline)} · ${labelOf('fabric', d.fabric)}`;
+    card.querySelector('.row').append(btn(pendingOpen === 'starter' + i ? 'Discard changes and open' : 'Use this', 'btn small', () => openDesign('starter' + i, { ...d, measurements: design.measurements, units: design.units }, true)));
+    sg.appendChild(card);
+  });
+}
+function btn(text, cls, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.textContent = text; b.addEventListener('click', fn); return b; }
+function swatchCanvas(d) { const c = document.createElement('canvas'); c.width = c.height = 200; const t = document.createElement('canvas'); t.width = t.height = 160; drawPrint(t.getContext('2d'), 160, d.print, d.fabric); const x = c.getContext('2d'); x.fillStyle = x.createPattern(t, 'repeat'); x.fillRect(0, 0, 200, 200); return c; }
+function openDesign(id, d, starter) {
+  if (dirty && pendingOpen !== id) { pendingOpen = id; renderLibrary(); return; }
+  pendingOpen = null;
+  hist.past.push(JSON.stringify(design)); hist.future.length = 0;
+  design = sanitize(d); currentId = starter ? null : id; setDirty(!!starter); render();
+  showView('studio'); toast(starter ? 'Starter loaded with your measurements.' : `Opened “${design.name}”.`);
+}
+function saveErr(e) {
+  const c = e && e.code;
+  if (c === 'quota_exceeded') return 'This device is out of storage for designs. Delete a design, then save again.';
+  if (c === 'unavailable') return 'This browser isn’t letting the app store designs. Use Export design file to keep a copy.';
+  return 'The design could not be saved. Try again in a moment.';
+}
+async function saveDesign(asCopy) {
+  const b = $('#saveBtn'); b.disabled = true;
+  try {
+    const thumb = captureThumb();
+    const id = await Platform.saveDesign(asCopy ? null : currentId, { name: design.name, design: clone(design), thumb, updatedAt: Date.now() });
+    currentId = id; setDirty(false); toast(asCopy ? 'Saved a copy to your library.' : 'Saved to your library.');
+    renderLibrary();
+  } catch (e) { toast(saveErr(e)); }
+  finally { b.disabled = false; }
+}
+$('#saveBtn').addEventListener('click', () => saveDesign(false));
+$('#saveCopyBtn').addEventListener('click', () => saveDesign(true));
+$('#exportJsonBtn').addEventListener('click', () => saveFileWithToast(slug(design.name) + '.muslin.json', JSON.stringify({ app: 'Muslin Studio', version: 1, design }, null, 2), 'Design file saved.'));
+$('#importFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()); const d = j.design || j;
+    if (!d || typeof d !== 'object' || !d.silhouette) throw 0;
+    hist.past.push(JSON.stringify(design)); hist.future.length = 0;
+    design = sanitize(d); currentId = null; setDirty(true); render(); showView('studio'); toast(`Imported “${design.name}”. Save it to add it to your library.`);
+  } catch (err) { toast('That file isn’t a Muslin Studio design. Choose a .json file exported from this app.'); }
+});
+</script>
+
+<script>
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+loadDraft();
+lastCommitted = clone(design);
+initThree();
+render();
+setDirty(dirty);
+initLibrary();
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
