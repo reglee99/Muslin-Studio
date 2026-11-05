@@ -126,8 +126,24 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
 .stage-tools{position:absolute;left:16px;bottom:14px;right:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .stage-tools .seg button{background:var(--panel)}
 .stage-tools .seg button[aria-pressed="true"]{background:var(--ink)}
+.measure-guide{border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.measure-guide summary{cursor:pointer;padding:10px 12px;font-weight:600}
+.mg-body{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:0 12px 12px;align-items:start}
+.mg-body p{margin:4px 0 0}
+.mg-fig{width:96px;height:auto;max-width:100%}
+.mg-body-shape{fill:var(--line);stroke:var(--line-strong);stroke-width:1}
+.mline{stroke:var(--accent);stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s}
+.mline circle{fill:var(--accent);stroke:none}
+.mline .back{stroke-dasharray:4 3}
+.mline.on{opacity:1}
+@media (prefers-reduced-motion: reduce){.mline{transition:none}}
+.version{margin-top:32px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.backup-note{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid var(--pin);border-radius:10px;padding:10px 12px;margin:0 0 14px;color:var(--ink)}
+.backup-note span{flex:1;min-width:200px}
+.webgl-fail a{pointer-events:auto;color:var(--accent)}
 .stage-note{margin-left:auto;font-size:12px;color:var(--muted)}
-.webgl-fail{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted);pointer-events:none}
+.webgl-fail{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;padding:24px;text-align:center;color:var(--muted);pointer-events:none}
+.webgl-fail p{margin:0;max-width:520px}
 
 /* Chat */
 .chat-head{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
@@ -318,6 +334,27 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
           </div>
           <div class="pane" data-pane="fit" hidden>
             <p class="hint">The dress form and the sewing pattern both follow these measurements.</p>
+            <details class="measure-guide" open>
+              <summary>How to measure</summary>
+              <div class="mg-body">
+                <svg viewBox="0 0 200 340" class="mg-fig" aria-hidden="true">
+                  <ellipse class="mg-body-shape" cx="100" cy="32" rx="17" ry="21"/>
+                  <path class="mg-body-shape" d="M92 48h16v14H92z"/>
+                  <path class="mg-body-shape" d="M60 74Q50 80 50 96L44 160Q42 176 44 186L52 186Q54 170 56 160L64 108ZM140 74Q150 80 150 96L156 160Q158 176 156 186L148 186Q146 170 144 160L136 108Z"/>
+                  <path class="mg-body-shape" d="M70 204L64 290Q63 316 66 326L80 326Q82 300 90 250L98 206ZM130 204L136 290Q137 316 134 326L120 326Q118 300 110 250L102 206Z"/>
+                  <path class="mg-body-shape" d="M92 60Q74 63 60 74Q57 90 66 102Q63 116 68 130Q76 142 75 152Q64 168 62 188Q62 200 70 206L130 206Q138 200 138 188Q136 168 125 152Q124 142 132 130Q137 116 134 102Q143 90 140 74Q126 63 108 60Z"/>
+                  <g class="mline" data-k="height"><path d="M182 11V326M176 11h12M176 326h12"/></g>
+                  <g class="mline" data-k="bust"><path d="M64 114Q100 126 136 114"/><path class="back" d="M64 114Q100 104 136 114"/></g>
+                  <g class="mline" data-k="waist"><path d="M75 150Q100 159 125 150"/><path class="back" d="M75 150Q100 142 125 150"/></g>
+                  <g class="mline" data-k="hip"><path d="M62 186Q100 198 138 186"/><path class="back" d="M62 186Q100 177 138 186"/></g>
+                  <g class="mline" data-k="shoulder"><path class="back" d="M60 74H140"/><circle cx="60" cy="74" r="3"/><circle cx="140" cy="74" r="3"/></g>
+                  <g class="mline" data-k="backWaist"><path class="back" d="M100 56V152"/><circle cx="100" cy="56" r="3"/><path d="M93 152h14"/></g>
+                  <g class="mline" data-k="arm"><path d="M60 74Q50 82 50 96L45 180"/><circle cx="60" cy="74" r="3"/><path d="M40 180h10"/></g>
+                  <g class="mline" data-k="upperArm"><ellipse cx="57" cy="104" rx="10" ry="3.5"/></g>
+                </svg>
+                <div><strong id="mgTitle"></strong><p id="mgText"></p><p class="hint">Measure over light underwear with the tape snug but not tight, and level all the way around. A helper makes this much easier.</p></div>
+              </div>
+            </details>
             <div class="row">
               <div class="seg" id="unitSeg"><button data-u="in">Inches</button><button data-u="cm">Centimeters</button></div>
             </div>
@@ -338,6 +375,7 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
         <div class="stage-tools">
           <div class="seg" id="viewSeg"><button data-yaw="0">Front</button><button data-yaw="90">Side</button><button data-yaw="180">Back</button></div>
           <button class="btn small" id="spinBtn" aria-pressed="false">Turntable</button>
+          <button class="btn small" id="shotBtn">Save image</button>
           <span class="stage-note">Drag to turn · scroll or pinch to zoom</span>
         </div>
       </div>
@@ -398,14 +436,17 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
           <div class="row">
             <button class="btn" id="saveCopyBtn">Save as copy</button>
             <button class="btn" id="exportJsonBtn">Export design file</button>
-            <label class="btn" for="importFile" style="cursor:pointer">Import design file</label>
+            <button class="btn" id="backupBtn">Back up library</button>
+            <label class="btn" for="importFile" style="cursor:pointer">Import file</label>
             <input type="file" id="importFile" accept=".json,application/json" hidden>
           </div>
         </div>
         <p class="hint" id="libStatus" style="margin:-4px 0 14px"></p>
+        <div class="backup-note" id="backupNote" hidden><span id="backupText"></span><button class="btn small primary" id="backupNowBtn">Back up now</button></div>
         <div class="lib-grid" id="libGrid"></div>
         <div class="section-title" style="margin-top:32px"><h2>Starters</h2><span class="hint">Examples to build from</span></div>
         <div class="lib-grid" id="starterGrid"></div>
+        <p class="version">Muslin Studio for the web · Version 7 · November 5, 2026</p>
       </div>
     </section>
   </main>
@@ -1392,12 +1433,15 @@ let formKey = '';
 const texCanvas = document.createElement('canvas'); texCanvas.width = texCanvas.height = 512;
 
 function initThree() {
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  } catch (e) { renderer = null; }
-  if (!renderer || !window.THREE) {
-    const f = document.createElement('div'); f.className = 'webgl-fail'; f.textContent = 'The 3D view needs WebGL, which this browser has turned off. The pattern and library still work.'; stage.appendChild(f); return;
-  }
+  const fail3D = (msg) => {
+    const f = document.createElement('div'); f.className = 'webgl-fail';
+    f.innerHTML = '<p></p><p>You can check this browser at <a href="https://get.webgl.org" target="_blank" rel="noopener">get.webgl.org</a>. The pattern and library still work.</p>';
+    f.firstChild.textContent = msg; stage.appendChild(f);
+  };
+  if (!window.THREE) { fail3D('The 3D library didn’t load, so the dress can’t be drawn. A network filter or a content blocker can stop it. Reload the page to try again.'); return; }
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { renderer = null; }
+  if (!renderer) { fail3D('This browser has WebGL turned off, so the 3D view can’t draw. In Chrome or Edge, turn on Settings › System › “Use graphics acceleration when available,” then relaunch. On a work computer, your IT team may control this setting.'); return; }
+  renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); renderer = null; fail3D('The graphics chip reset the 3D view. Reload the page to bring it back.'); });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.outputEncoding = THREE.sRGBEncoding;
   stage.prepend(renderer.domElement);
@@ -1859,7 +1903,7 @@ const fabricIn = () => ({ 112: 44, 137: 54, 150: 60 }[patOpts.fabricW] || Math.r
 function slug(s) { return (s || 'dress').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'dress'; }
 function loadScript(src) { return new Promise((res, rej) => { if ([...document.scripts].some(s => s.src === src)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
 async function saveFileWithToast(name, data, okMsg) {
-  try { await Platform.saveFile(name, data); toast(okMsg); }
+  try { await Platform.saveFile(name, data); toast(okMsg); return true; }
   catch (e) {
     const c = e && e.code;
     if (c === 'declined') return;
@@ -1981,6 +2025,7 @@ function renderLibrary() {
     error: 'Your library could not be loaded. Reopen the page to try again; export a design file to keep a copy.',
     ready: 'Designs are saved in this browser on this device. Export a design file to back one up or move it to another device.'
   }[libState] + (Platform.isIOS && !Platform.standalone && libState === 'ready' ? ' On iPhone, add this site to your Home Screen (Share, then Add to Home Screen) so Safari keeps your library.' : '');
+  renderBackupNote();
   const grid = $('#libGrid'); grid.innerHTML = '';
   if (libState === 'ready' && !libDocs.length) grid.innerHTML = '<div class="empty">No saved designs yet. Press Save in the top bar to keep this one here.</div>';
   for (const doc of libDocs) {
@@ -2034,7 +2079,9 @@ async function saveDesign(asCopy) {
   try {
     const thumb = captureThumb();
     const id = await Platform.saveDesign(asCopy ? null : currentId, { name: design.name, design: clone(design), thumb, updatedAt: Date.now() });
-    currentId = id; setDirty(false); toast(asCopy ? 'Saved a copy to your library.' : 'Saved to your library.');
+    currentId = id; setDirty(false);
+    const st = noteSaved();
+    toast(BACKUP_REMINDERS && st.saves >= 3 ? `Saved. ${st.saves} changes since your last backup: back up your library from the Library page.` : asCopy ? 'Saved a copy to your library.' : 'Saved to your library.');
     renderLibrary();
   } catch (e) { toast(saveErr(e)); }
   finally { b.disabled = false; }
@@ -2045,15 +2092,83 @@ $('#exportJsonBtn').addEventListener('click', () => saveFileWithToast(slug(desig
 $('#importFile').addEventListener('change', async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
-    const j = JSON.parse(await f.text()); const d = j.design || j;
+    const j = JSON.parse(await f.text());
+    if (j && j.kind === 'library' && Array.isArray(j.designs)) {
+      if (libState !== 'ready') { toast('Your library isn’t available here, so the backup can’t be restored.'); return; }
+      let n = 0;
+      for (const x of j.designs) {
+        if (!x || !x.design || !x.design.silhouette) continue;
+        const d = sanitize(x.design);
+        await Platform.saveDesign(null, { name: String(x.name || d.name).slice(0, 60), design: d, thumb: typeof x.thumb === 'string' && x.thumb.startsWith('data:image/') ? x.thumb : '', updatedAt: Number(x.updatedAt) || Date.now() });
+        n++;
+      }
+      showView('library'); toast(`Added ${n} design${n === 1 ? '' : 's'} from the backup to your library.`); return;
+    }
+    const d = j.design || j;
     if (!d || typeof d !== 'object' || !d.silhouette) throw 0;
     hist.past.push(JSON.stringify(design)); hist.future.length = 0;
     design = sanitize(d); currentId = null; setDirty(true); render(); showView('studio'); toast(`Imported “${design.name}”. Save it to add it to your library.`);
-  } catch (err) { toast('That file isn’t a Muslin Studio design. Choose a .json file exported from this app.'); }
+  } catch (err) { toast('That file isn’t a Muslin Studio design or backup. Choose a .json file exported from this app.'); }
 });
 </script>
 
 <script>
+const BACKUP_REMINDERS = true;
+/* How-to-measure guide */
+const MEAS_HOW = {
+  height: 'Stand against a wall without shoes. Measure from the floor to the top of your head.',
+  bust: 'Around the fullest part of your bust, with the tape level across your back. Wear the bra you’ll wear with the dress.',
+  waist: 'Around your natural waist, the narrowest part of your torso. Bend to one side: the crease that forms is your waist.',
+  hip: 'Around the fullest part of your hips and seat, usually 7 to 9 in (18 to 23 cm) below your waist. Keep your feet together.',
+  shoulder: 'Across your back from one shoulder point to the other. The shoulder point is the bony tip at the outer end of each shoulder.',
+  backWaist: 'From the bone at the base of the back of your neck, straight down your spine to your waist.',
+  arm: 'From the shoulder point, over a slightly bent elbow, down to the wrist bone.',
+  upperArm: 'Around the fullest part of your upper arm, with your arm relaxed at your side.'
+};
+function showMeasureHelp(k) {
+  $$('.mline').forEach(g => g.classList.toggle('on', g.dataset.k === k));
+  $('#mgTitle').textContent = MEAS_FIELDS.find(f => f[0] === k)[1];
+  $('#mgText').textContent = MEAS_HOW[k];
+}
+for (const [k] of MEAS_FIELDS) { const el = $('#m_' + k); ['focus', 'mouseenter'].forEach(ev => el.addEventListener(ev, () => showMeasureHelp(k))); }
+showMeasureHelp('bust');
+
+/* Save an image of the dress */
+$('#shotBtn').addEventListener('click', () => {
+  if (!renderer) { toast('The 3D view isn’t available in this browser, so there’s no image to save.'); return; }
+  placeCamera(); renderer.render(scene, camera);
+  const src = renderer.domElement, w = src.width, h = src.height, pad = Math.round(h * 0.13);
+  const c = document.createElement('canvas'); c.width = w; c.height = h + pad; const x = c.getContext('2d');
+  const gr = x.createRadialGradient(w / 2, h * 0.3, 0, w / 2, h * 0.3, Math.max(w, h)); gr.addColorStop(0, '#FFFFFF'); gr.addColorStop(1, '#E3E7EE');
+  x.fillStyle = gr; x.fillRect(0, 0, w, h + pad); x.drawImage(src, 0, 0);
+  const fit = (txt, size, family, weight) => { let s = size; do { x.font = `${weight} ${s}px ${family}`; s -= 1; } while (x.measureText(txt).width > w * 0.92 && s > 8); };
+  x.fillStyle = '#171E2C'; fit(design.name, Math.round(pad * 0.32), "'Bodoni Moda', Georgia, serif", 500); x.fillText(design.name, Math.round(w * 0.04), h + pad * 0.42);
+  const spec = $('#specLine').textContent;
+  x.fillStyle = '#5B6476'; fit(spec, Math.round(pad * 0.16), "'IBM Plex Mono', Menlo, monospace", 400); x.fillText(spec, Math.round(w * 0.04), h + pad * 0.76);
+  c.toBlob(b => b && saveFileWithToast(slug(design.name) + '.png', b, 'Image saved.'), 'image/png');
+});
+
+/* Library backup: every saved design in one file */
+const BACKUP_KEY = 'muslin-backup-v1';
+function backupState() { try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null') || { at: 0, saves: 0 }; } catch (e) { return { at: 0, saves: 0 }; } }
+function setBackupState(st) { try { localStorage.setItem(BACKUP_KEY, JSON.stringify(st)); } catch (e) {} }
+function noteSaved() { const st = backupState(); st.saves = (st.saves || 0) + 1; setBackupState(st); return st; }
+async function backupLibrary() {
+  if (!libDocs.length) { toast('There are no saved designs to back up yet.'); return; }
+  const day = new Date().toISOString().slice(0, 10);
+  const data = { app: 'Muslin Studio', version: 1, kind: 'library', exported: new Date().toISOString(), designs: libDocs.map(d => ({ name: d.name, design: d.design, thumb: d.thumb || '', updatedAt: d.updatedAt || 0 })) };
+  if (await saveFileWithToast(`muslin-library-${day}.json`, JSON.stringify(data), `Backed up ${libDocs.length} design${libDocs.length === 1 ? '' : 's'}.`)) { setBackupState({ at: Date.now(), saves: 0 }); renderBackupNote(); }
+}
+function renderBackupNote() {
+  const el = $('#backupNote'); if (!el) return;
+  const st = backupState(), stale = !st.at || Date.now() - st.at > 14 * 864e5;
+  const show = BACKUP_REMINDERS && libState === 'ready' && libDocs.length > 0 && (st.saves >= 3 || (stale && st.saves > 0) || (!st.at && libDocs.length >= 2));
+  el.hidden = !show;
+  if (show) $('#backupText').textContent = `Your ${libDocs.length} saved design${libDocs.length === 1 ? ' is' : 's are'} only on this device${st.at ? `, last backed up ${new Date(st.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ' and haven’t been backed up yet'}. Save a backup file to Files or iCloud Drive so you don’t lose them.`;
+}
+$('#backupBtn').addEventListener('click', backupLibrary);
+$('#backupNowBtn').addEventListener('click', backupLibrary);
+
 /* =====================================================================
    BOOT
    ===================================================================== */
