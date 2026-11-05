@@ -175,7 +175,7 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .card h3{margin:0;font-family:var(--f-display);font-weight:500;font-size:22px}
 .pieces{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.pieces li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.pieces li{display:grid;grid-template-columns:28px minmax(0,1.1fr) minmax(0,1fr);gap:8px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
 .pieces li:first-child{border-top:0}
 .pieces .pid{font-family:var(--f-display);font-size:18px;color:var(--accent)}
 .pieces .cut{font-size:12px;color:var(--muted);text-align:right}
@@ -198,6 +198,15 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
 .sheet-wrap text.muted{fill:var(--muted)}
 .sheet-wrap text.pin{fill:var(--pin)}
 .sheet-wrap text.pid{font-family:var(--f-display);fill:var(--accent)}
+.fin{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:0;font-size:13px}
+.fin dt{color:var(--muted)}
+.fin dd{margin:0;font-family:var(--f-mono);font-size:12.5px;text-align:right;white-space:nowrap}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.checks li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px;align-items:baseline}
+.checks .st{font-weight:700}
+.checks .st.ok{color:var(--ok)}
+.checks .st.bad{color:var(--pin)}
+.checks small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:11.5px}
 .export-btns{display:flex;flex-direction:column;gap:8px}
 .export-btns .btn{justify-content:flex-start}
 .warn{font-size:13px;color:var(--pin)}
@@ -350,6 +359,13 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
                   <g class="mline" data-k="shoulder"><path class="back" d="M60 74H140"/><circle cx="60" cy="74" r="3"/><circle cx="140" cy="74" r="3"/></g>
                   <g class="mline" data-k="backWaist"><path class="back" d="M100 56V152"/><circle cx="100" cy="56" r="3"/><path d="M93 152h14"/></g>
                   <g class="mline" data-k="arm"><path d="M60 74Q50 82 50 96L45 180"/><circle cx="60" cy="74" r="3"/><path d="M40 180h10"/></g>
+                  <g class="mline" data-k="highBust"><path d="M66 101Q100 108 134 101"/><path class="back" d="M66 101Q100 94 134 101"/></g>
+                  <g class="mline" data-k="frontWaist"><path d="M93 60Q86 90 87 116Q88 136 90 152"/><circle cx="93" cy="60" r="3"/><path d="M84 152h12"/></g>
+                  <g class="mline" data-k="bustHeight"><path d="M93 60Q86 88 86 114"/><circle cx="93" cy="60" r="3"/><circle cx="86" cy="114" r="3"/></g>
+                  <g class="mline" data-k="bustSpan"><path d="M85 114H115"/><circle cx="85" cy="114" r="3"/><circle cx="115" cy="114" r="3"/></g>
+                  <g class="mline" data-k="neck"><ellipse cx="100" cy="58" rx="9" ry="3"/></g>
+                  <g class="mline" data-k="wrist"><ellipse cx="46" cy="180" rx="5" ry="2"/></g>
+                  <g class="mline" data-k="backWidth"><path class="back" d="M67 94H133"/><circle cx="67" cy="94" r="3"/><circle cx="133" cy="94" r="3"/></g>
                   <g class="mline" data-k="upperArm"><ellipse cx="57" cy="104" rx="10" ry="3.5"/></g>
                 </svg>
                 <div><strong id="mgTitle"></strong><p id="mgText"></p><p class="hint">Measure over light underwear with the tape snug but not tight, and level all the way around. A helper makes this much easier.</p></div>
@@ -365,6 +381,19 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
               </select>
             </div>
             <div class="meas" id="measGrid"></div>
+            <details class="measure-guide more-meas">
+              <summary>More measurements <span class="hint">(optional, for a better fit)</span></summary>
+              <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:10px">
+                <p class="hint" style="margin:0">Leave any blank to use the estimate shown in grey.</p>
+                <div class="meas" id="extraGrid"></div>
+              </div>
+            </details>
+            <div class="field"><div class="label">Fit adjustments</div>
+              <p class="hint" id="bustAdjHint" style="margin:0"></p>
+            </div>
+            <div class="field"><div class="label">Shoulders</div><div class="seg" id="shSeg"><button type="button" data-v="square">Square</button><button type="button" data-v="average">Average</button><button type="button" data-v="sloping">Sloping</button></div><p class="hint" style="margin:0">Square shoulders sit high and level; sloping shoulders drop away from the neck.</p></div>
+            <div class="field"><div class="label">Sway back</div><div class="seg" id="swaySeg"><button type="button" data-v="0">None</button><button type="button" data-v="1">Slight</button><button type="button" data-v="2">Pronounced</button></div><p class="hint" style="margin:0">Choose this if a test version pools in folds just above the back waist.</p></div>
+            <div class="field"><div class="label">Armhole depth <output id="ahVal"></output></div><input type="range" id="ahAdj" min="-3" max="3" step="0.5" aria-label="Armhole depth"><p class="hint" style="margin:0">Raise it if the armhole gapes or shows your bra; lower it if it cuts in.</p></div>
             <div class="field"><div class="label">Wearing ease</div><div class="seg" data-key="fit"></div><p class="hint" id="easeHint"></p></div>
           </div>
         </div>
@@ -395,6 +424,9 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
               <h3 id="patTitle">Pattern pieces</h3>
               <p class="hint" id="patSummary"></p>
               <ul class="pieces" id="pieceList"></ul>
+              <div class="field"><div class="label">Finished garment</div><dl class="fin" id="finList"></dl></div>
+              <div class="field"><div class="label">Pattern check</div><ul class="checks" id="checkList"></ul>
+                <p class="hint" style="margin:0">Seams that sew together are measured against each other. Sew a test version in muslin before cutting good fabric.</p></div>
               <div class="field"><div class="label">Fabric width</div>
                 <div class="seg" id="fabWSeg"><button data-w="112">44 in</button><button data-w="137">54 in</button><button data-w="150">60 in</button></div></div>
               <div class="field"><div class="label">Seam allowance</div>
@@ -446,7 +478,7 @@ input[type=color]{width:44px;height:32px;border:1px solid var(--line-strong);bor
         <div class="lib-grid" id="libGrid"></div>
         <div class="section-title" style="margin-top:32px"><h2>Starters</h2><span class="hint">Examples to build from</span></div>
         <div class="lib-grid" id="starterGrid"></div>
-        <p class="version">Muslin Studio for the web · Version 7 · November 5, 2026</p>
+        <p class="version">Muslin Studio for the web · Version 8 · November 5, 2026</p>
       </div>
     </section>
   </main>
@@ -571,6 +603,29 @@ const MEAS_FIELDS = [
   ['height','Height',140,200], ['bust','Bust',70,150], ['waist','Waist',50,140], ['hip','Hip',75,160],
   ['shoulder','Shoulder width',30,50], ['backWaist','Back waist length',32,50], ['arm','Arm length',45,70], ['upperArm','Upper arm',20,50]
 ];
+/* Optional measurements: left blank (null), they are estimated from the others. */
+const EXTRA_FIELDS = [
+  ['highBust', 'High bust', 60, 150], ['frontWaist', 'Front waist length', 30, 60], ['bustHeight', 'Bust point height', 15, 45],
+  ['bustSpan', 'Bust point spacing', 10, 30], ['neck', 'Neck', 28, 50], ['wrist', 'Wrist', 12, 24], ['backWidth', 'Back width', 25, 50]
+];
+function measureEstimates(m) {
+  const hb = m.highBust != null ? m.highBust : m.bust - 5, cup = Math.max(0, m.bust - hb);
+  return {
+    highBust: m.bust - 5,
+    frontWaist: m.backWaist + 2 + Math.max(0, cup - 5) * 0.5,
+    bustHeight: m.backWaist * 0.62 + Math.max(0, cup - 5) * 0.3,
+    bustSpan: m.bust * 0.2,
+    neck: 22 + m.bust * 0.15,
+    wrist: Math.max(14, m.upperArm * 0.55),
+    backWidth: m.shoulder - 4
+  };
+}
+function measureSet(m) {
+  const est = measureEstimates(m), X = {};
+  for (const [k] of EXTRA_FIELDS) X[k] = m[k] != null ? m[k] : est[k];
+  X.cup = Math.max(0, m.bust - X.highBust);
+  return X;
+}
 const DEFAULT_MEAS = { height: 168, bust: 91, waist: 74, hip: 99, shoulder: 39, backWaist: 41, arm: 58, upperArm: 28 };
 const SIZES = {
   '4': { bust: 84, waist: 66, hip: 91, shoulder: 37.5, upperArm: 26 },
@@ -730,7 +785,7 @@ function neckGeometry(d, B, seamY) {
   const m = d.measurements, nk = d.neck, c = nk.curve / 100, fam = neckFamily(d);
   const SPx = m.shoulder / 2 - (d.sleeves === 'sleeveless' ? 1.5 : 0);
   const backLen = m.backWaist + (B.waistY - seamY) * 100, frontLen = backLen + 2;
-  const nw = clamp(nk.width / 2, 4.5, SPx - 3);
+  const nw = clamp(nk.width / 2, Math.max(4.5, measureSet(m).neck / 6 + 0.3), SPx - 3);
   const depth = clamp(nk.depth, 1.5, frontLen - 5), bd = clamp(nk.backDepth, 1.5, backLen - 6);
   let front;
   if (fam === 'v') front = cubic([nw, 0], [lerp(nw * 0.67, nw * 0.97, c), lerp(depth * 0.33, depth * 0.5, c)], [lerp(nw * 0.33, nw * 0.3, c), lerp(depth * 0.67, depth * 0.97, c)], [0, depth], 18);
@@ -861,93 +916,168 @@ function assemble(segs) {
 function bbox(pts) { let a = Infinity, b = Infinity, c = -Infinity, e = -Infinity; for (const p of pts) { a = Math.min(a, p[0]); b = Math.min(b, p[1]); c = Math.max(c, p[0]); e = Math.max(e, p[1]); } return { x0: a, y0: b, x1: c, y1: e, w: c - a, h: e - b }; }
 
 function draftPattern(d, sa) {
-  const m = d.measurements, E = EASE[d.fit] || EASE.standard, G = geomParams(d), B = G.B;
-  const pieces = [], hemSA = Math.max(sa, 2.5), notes = [];
+  const m = d.measurements, X = measureSet(m), A = d.adj || { shoulders: 'average', sway: 0, armhole: 0 };
+  const E = EASE[d.fit] || EASE.standard, G = geomParams(d), B = G.B;
+  const pieces = [], hemSA = Math.max(sa, 2.5), notes = [], checks = [];
   const strapless = d.sleeves === 'strapless', sleeveless = d.sleeves === 'sleeveless', sleeved = !strapless && !sleeveless;
-  const neck = 22 + m.bust * 0.15, NW = neck / 6 + 0.5, slope = 4.5;
-  const AHd = m.bust / 10 + 11.5 + (sleeveless ? 1.5 : 0);
+  const slope = { square: 3, average: 4.5, sloping: 6 }[A.shoulders] || 4.5;
+  let AHd = m.bust / 10 + 11.5 + (sleeveless ? 1.5 : 0) + A.armhole;
   const SPx = m.shoulder / 2 - (sleeveless ? 1.5 : 0);
   const seamDrop = (B.waistY - G.seamY) * 100;
-  const backLen = m.backWaist + seamDrop, frontLen = backLen + 2;
+  const backLen = m.backWaist + seamDrop, frontLen = X.frontWaist + seamDrop;
   const Wq = circAt(G, G.seamY, 'bodice') / 4;
   const WqNat = circAt(G, B.waistY, 'bodice') / 4;
-  const NL = G.neck;
-  const armholes = {};
+  const NL = G.neck, armholes = {}, info = {};
+  // Back is drafted from the high bust; the front takes the rest of the full bust (a built-in bust adjustment).
+  const BqB = Math.max((X.highBust + E.b) / 4 + 0.25, X.backWidth / 2 + 2);
+  const BqF = Math.max((m.bust + E.b) / 2 - BqB, BqB);
+  const BP = [X.bustSpan / 2, X.bustHeight];
+  const backDartX = X.backWidth * 0.27;
 
   function bodice(front) {
-    const Bq = (m.bust + E.b) / 4 + (front ? 0.5 : -0.5);
-    const len = front ? frontLen : backLen, drop = front ? 1 : 0;
-    const bpX = front ? m.bust * 0.1 - 0.5 : 9.5;
-    const segs = []; const marks = []; const notches = [];
-    const split = (target) => { const diff = Bq - target; if (diff <= 0) return { side: Bq - diff, dart: 0, sideTake: diff }; let side = Math.min(diff * 0.45, front ? 2.5 : 2), dart = diff - side; const maxD = front ? 5 : 4; if (dart > maxD) { dart = maxD; side = diff - dart; } return { side: Bq - side, dart }; };
-    const apexY = front ? AHd + 3 : Math.max(AHd * 0.75, len - 15);
-    let sideWaist, seamSide, dartSeam;
+    const Bq = front ? BqF : BqB;
+    const len = front ? frontLen : backLen, drop = front ? 1 : 0, sway = front ? 0 : A.sway;
+    const bpX = front ? BP[0] : backDartX;
+    const segs = [], marks = [], notches = [], dots = [], labels = [];
+    const split = (target) => { const diff = Bq - target; if (diff <= 0) return { side: target, dart: 0 }; let side = Math.min(diff * 0.45, front ? 2.5 : 2), dart = diff - side; const maxD = front ? 5.5 : 4; if (dart > maxD) { dart = maxD; side = diff - dart; } return { side: Bq - side, dart }; };
+    const apexY = front ? Math.min(BP[1] + 2.5, len - 4) : Math.max(AHd * 0.75, len - 15);
+    let seamSide, dartSeam;
     const sidePts = [];
     if (seamDrop > 2) { // dropped waist: shape to the natural waist, then out to the seam
-      const natLen = front ? m.backWaist + 2 : m.backWaist;
+      const natLen = front ? X.frontWaist : m.backWaist;
       const nat = split(WqNat);
-      sideWaist = nat.side; seamSide = Math.max(nat.side, Wq); dartSeam = Math.max(0, seamSide - Wq);
+      seamSide = Math.max(nat.side, Wq); dartSeam = Math.max(0, seamSide - Wq);
       sidePts.push([Bq, AHd], [nat.side, natLen], [seamSide, len]);
       if (nat.dart > 0.2) marks.push({ k: 'dart', pts: [[bpX, apexY], [bpX - nat.dart / 2, natLen], [bpX - dartSeam / 2, len + drop * 0.6], [bpX + dartSeam / 2, len + drop * 0.6], [bpX + nat.dart / 2, natLen], [bpX, apexY]] });
     } else {
       const s = split(Wq); seamSide = s.side; dartSeam = s.dart;
       sidePts.push([Bq, AHd], [seamSide, len]);
-      if (dartSeam > 0.2) marks.push({ k: 'dart', pts: [[bpX - dartSeam / 2, len + drop * 0.55], [bpX, apexY], [bpX + dartSeam / 2, len + drop * 0.55]] });
+      if (dartSeam > 0.2) marks.push({ k: 'dart', pts: [[bpX - dartSeam / 2, len + drop * 0.55 - sway * 0.6], [bpX, apexY], [bpX + dartSeam / 2, len + drop * 0.55 - sway * 0.6]] });
     }
-    const cfBottom = [0, len + drop];
+    const cfBottom = [0, len + drop - sway];
     const edgeKind = front ? 'fold' : 'seam', edgeSA = front ? 0 : sa;
+    let shoulder = null, depth;
     if (!strapless) {
-      const nl = front ? NL.front : NL.back, depth = nl[nl.length - 1][1];
+      const nl = front ? NL.front : NL.back; depth = nl[nl.length - 1][1];
       const SP = [SPx, slope];
+      const backArmX = Math.min(SPx - 0.6, X.backWidth / 2 + 0.5);
       const arm = front
         ? cubic(SP, [SPx - 1.2, slope + (AHd - slope) * 0.55], [lerp(SPx - 1.2, Bq, 0.25), AHd], [Bq, AHd], 20)
-        : cubic(SP, [SPx - 0.6, slope + (AHd - slope) * 0.6], [lerp(SPx - 0.6, Bq, 0.3), AHd], [Bq, AHd], 20);
+        : cubic(SP, [backArmX, slope + (AHd - slope) * 0.6], [lerp(backArmX, Bq, 0.3), AHd], [Bq, AHd], 20);
       armholes[front ? 'front' : 'back'] = arm;
+      shoulder = [[NL.nw, 0], SP];
       segs.push({ pts: [cfBottom, [0, depth]], sa: edgeSA, kind: edgeKind });
       segs.push({ pts: nl.slice().reverse(), sa: Math.min(sa, 1), kind: 'seam' });
-      segs.push({ pts: [[NL.nw, 0], SP], sa, kind: 'seam' });
+      segs.push({ pts: shoulder, sa, kind: 'seam' });
       segs.push({ pts: arm, sa: sleeved ? sa : Math.min(sa, 1), kind: 'seam' });
-      const nPt = pointAtLen(arm, 0.62);
-      notches.push({ ...nPt, count: front ? 1 : 2 });
+      notches.push({ ...pointAtLen(arm, 0.62), count: front ? 1 : 2 });
     } else {
       const topSide = [Bq, AHd + 2];
       const top = front
         ? (neckFamily(d) === 'sweetheart' ? cubic([0, AHd + 3], [Bq * 0.2, AHd - 2.5], [Bq * 0.7, AHd - 3], topSide, 20) : cubic([0, AHd], [Bq * 0.3, AHd], [Bq * 0.6, AHd], topSide, 12))
         : cubic([0, AHd + 3], [Bq * 0.3, AHd + 3], [Bq * 0.7, AHd + 2.5], topSide, 12);
+      depth = top[0][1];
       segs.push({ pts: [cfBottom, top[0]], sa: edgeSA, kind: edgeKind });
       segs.push({ pts: top, sa: Math.min(sa, 1), kind: 'seam' });
       sidePts[0] = topSide;
     }
     segs.push({ pts: sidePts, sa, kind: 'seam' });
-    segs.push({ pts: cubic([seamSide, len], [seamSide * 0.6, len + drop * 0.7], [seamSide * 0.25, len + drop], cfBottom, 10), sa, kind: 'seam' });
+    const waist = cubic([seamSide, len], [seamSide * 0.6, len + drop * 0.7 - sway * 0.3], [seamSide * 0.25, len + drop - sway], cfBottom, 10);
+    segs.push({ pts: waist, sa, kind: 'seam' });
+    if (front) { dots.push(BP); labels.push({ p: [BP[0] + 0.8, BP[1] - 0.6], s: 'Bust point' }); }
+    info[front ? 'front' : 'back'] = { Bq, len, side: sidePts, seamSide, dartSeam, waist, shoulder, depth, sway };
     const gx = Math.max(4, Bq * 0.2);
     return {
       name: front ? 'Bodice front' : 'Bodice back',
       cut: front ? 'Cut 1 on fold' : 'Cut 2 · center-back zip',
-      fold: front, ...assemble(segs), marks, notches,
-      grain: [[gx, (strapless ? AHd + 4 : AHd * 0.55)], [gx, len - 3]]
+      fold: front, ...assemble(segs), marks, notches, dots, labels,
+      grain: [[gx, (strapless ? AHd + 4 : AHd * 0.55)], [gx, len - 3 - sway]]
     };
   }
-  pieces.push(bodice(true), bodice(false));
+  // Sleeve cap setup (needed first: the armhole must be big enough for the upper arm)
+  const sv = d.sleeve, SP_ = sv.puff / 100;
+  const BW = m.upperArm + ({ close: 4, standard: 5.5, relaxed: 8 }[d.fit] || 5.5), capW = BW * (1 + 0.5 * SP_);
+  const capCurve = (h) => [
+    ...cubic([-capW / 2, h], [-capW / 2 + capW * 0.18, h * 0.95], [-capW * 0.2, 0], [0, 0], 16),
+    ...cubic([0, 0], [capW * 0.18, 0], [capW / 2 - capW * 0.22, h * 0.85], [capW / 2, h], 16).slice(1)
+  ];
+  let bf, bb, lowered = 0;
+  for (let tries = 0; tries < 10; tries++) {
+    bf = bodice(true); bb = bodice(false);
+    if (!sleeved) break;
+    const AHt = polyLen(armholes.front) + polyLen(armholes.back);
+    if (polyLen(capCurve(7)) <= AHt + 2.5 + AHt * 0.3 * SP_ + 0.3) break;
+    AHd += 1; lowered += 1;
+  }
+  if (lowered) notes.push(`The armhole was lowered ${fmtCheck(lowered)} so the sleeve fits around your upper arm.`);
+  pieces.push(bf, bb);
+
+  // Side bust dart: takes up the extra length of the front side seam so both side seams sew together evenly.
+  const sideLenF = polyLen(info.front.side), sideLenB = polyLen(info.back.side);
+  const intake = sideLenF - sideLenB, bustDart = intake > 0.3 ? intake : 0;
+  if (bustDart) {
+    const s0 = Math.max(Math.min(5.5, sideLenF * 0.3), bustDart / 2 + 1);
+    const a = pointAtLen(info.front.side, (s0 - bustDart / 2) / sideLenF).p, b = pointAtLen(info.front.side, (s0 + bustDart / 2) / sideLenF).p;
+    bf.marks.push({ k: 'dart', pts: [a, [BP[0] + 2.5, BP[1]], b] });
+  }
+  // Matching notches halfway down the side seams (single on the front, double on the back)
+  bb.notches.push({ ...pointAtLen(info.back.side, 0.5), count: 2 });
+  bf.notches.push({ ...pointAtLen(info.front.side, clamp((sideLenB * 0.5 + bustDart) / sideLenF, 0.05, 0.95)), count: 1 });
+  checks.push({ name: 'Bodice side seams', a: ['Front', sideLenF - bustDart], b: ['Back', sideLenB], tol: 0.4, note: bustDart ? 'Front measured with the bust dart sewn' : '' });
+  if (intake < -0.3) notes.push('Your front waist length is shorter than your back waist length, which is unusual. Check both measurements.');
+  if (!strapless) checks.push({ name: 'Shoulder seams', a: ['Front', polyLen(info.front.shoulder)], b: ['Back', polyLen(info.back.shoulder)], tol: 0.3 });
+
+  // Facings and linings
+  const facingCut = (front) => front ? 'Cut 1 on fold' : 'Cut 2';
+  if (sleeved) {
+    for (const front of [true, false]) {
+      const nl = (front ? NL.front : NL.back).slice().reverse(), W = 6;
+      const off = nl.map((p, i) => { const a = nl[Math.max(0, i - 1)], b = nl[Math.min(nl.length - 1, i + 1)]; let tx = b[0] - a[0], ty = b[1] - a[1]; const L = Math.hypot(tx, ty) || 1; tx /= L; ty /= L; return [Math.max(0, p[0] - ty * W), p[1] + tx * W]; });
+      off[0] = [0, nl[0][1] + W];
+      const nwP = nl[nl.length - 1], SP = [SPx, slope], sl = Math.hypot(SP[0] - nwP[0], SP[1] - nwP[1]), k = Math.min(W, sl - 0.5) / sl;
+      const Ash = [nwP[0] + (SP[0] - nwP[0]) * k, nwP[1] + (SP[1] - nwP[1]) * k];
+      const segs = [
+        { pts: [off[0], nl[0]], sa: front ? 0 : sa, kind: front ? 'fold' : 'seam' },
+        { pts: nl, sa: Math.min(sa, 1), kind: 'seam' },
+        { pts: [nwP, Ash], sa, kind: 'seam' },
+        { pts: [Ash, off[off.length - 1]], sa: 0, kind: 'finish' },
+        { pts: off.slice().reverse(), sa: 0, kind: 'finish' }
+      ];
+      const lk = Math.floor(nl.length * 0.35), lbl = [lerp(nl[lk][0], off[lk][0], 0.5) + 1.5, lerp(nl[lk][1], off[lk][1], 0.5) + 0.6];
+      pieces.push({ labelAt: lbl, name: front ? 'Front neck facing' : 'Back neck facing', cut: facingCut(front), fold: front, ...assemble(segs), marks: [], notches: [], grain: [[2, nl[0][1] + 1], [2, nl[0][1] + 5]], note: 'Also cut in interfacing' });
+    }
+  } else if (sleeveless) {
+    for (const [pc, front] of [[bf, true], [bb, false]]) {
+      const I = info[front ? 'front' : 'back'];
+      const yc = Math.min(I.depth + 7, I.len - 3), ys = Math.min(AHd + 6, I.len - 3);
+      const lineY = (x) => yc + (ys - yc) * x / I.Bq, inside = (p) => p[1] <= lineY(p[0]);
+      const out = [], n = pc.pts.length;
+      for (let i = 0; i < n; i++) {
+        const a = pc.pts[i], b = pc.pts[(i + 1) % n], ia = inside(a), ib = inside(b);
+        const cross = () => { const fa = a[1] - lineY(a[0]), fb = b[1] - lineY(b[0]), t = fa / (fa - fb); return [lerp(a[0], b[0], t), lerp(a[1], b[1], t)]; };
+        if (ia && ib) out.push([a, pc.offs[i], pc.kinds[i]]);
+        else if (ia && !ib) { out.push([a, pc.offs[i], pc.kinds[i]]); out.push([cross(), 0, 'finish']); }
+        else if (!ia && ib) out.push([cross(), pc.offs[i], pc.kinds[i]]);
+      }
+      const gx = (NL.nw + SPx) / 2;
+      pieces.push({ name: front ? 'Front neck and armhole facing' : 'Back neck and armhole facing', cut: facingCut(front), fold: front, pts: out.map(o => o[0]), offs: out.map(o => o[1]), kinds: out.map(o => o[2]), marks: [], notches: [], grain: [[gx, slope + 1.5], [gx, Math.max(slope + 3, lineY(gx) - 1.5)]], note: 'Also cut in interfacing' });
+    }
+  } else notes.push('Strapless: cut the bodice front and back again in lining. Boning in the side seams and darts helps the bodice stay up.');
 
   // Sleeves
+  let sleeveLen = 0;
   if (sleeved) {
-    const sv = d.sleeve, P = sv.puff / 100, F = sv.flare / 100, Gt = sv.gather / 100, band = sv.cuff === 'band';
+    const P = SP_, F = sv.flare / 100, Gt = sv.gather / 100, band = sv.cuff === 'band';
     const AHtot = polyLen(armholes.front) + polyLen(armholes.back);
     const target = AHtot + 2.5 + AHtot * 0.3 * P;
-    const BW = m.upperArm + ({ close: 4, standard: 5.5, relaxed: 8 }[d.fit] || 5.5);
-    const capW = BW * (1 + 0.5 * P);
-    const capCurve = (h) => [
-      ...cubic([-capW / 2, h], [-capW / 2 + capW * 0.18, h * 0.95], [-capW * 0.2, 0], [0, 0], 16),
-      ...cubic([0, 0], [capW * 0.18, 0], [capW / 2 - capW * 0.22, h * 0.85], [capW / 2, h], 16).slice(1)
-    ];
     let lo = 4, hi = 26, capH = 12;
     for (let k = 0; k < 30; k++) { capH = (lo + hi) / 2; if (polyLen(capCurve(capH)) < target) lo = capH; else hi = capH; }
     capH += 2 * P;
     const cap = capCurve(capH);
     const bandH = band ? 4 : 0;
     const L = Math.max(capH + 2, m.arm * sv.length / 100 - bandH);
-    const wrist = Math.max(15, m.upperArm * 0.58) + 4;
+    sleeveLen = L + bandH;
+    const wrist = X.wrist + 4;
     const hemFit = lerp(BW, wrist, clamp((L - capH) / Math.max(1, m.arm - capH), 0, 1));
     const hemW = hemFit * (1 + 1.6 * F) + Gt * Math.max(0, BW * 1.45 - hemFit);
     const sag = F > 0.2 ? Math.min(6, (hemW - hemFit) * 0.12) : 0;
@@ -968,9 +1098,13 @@ function draftPattern(d, sa) {
         { ...pointAtLen(cap.slice(16), 0.55), count: 1 },
         { ...pointAtLen(cap.slice(0, 17), 0.45), count: 2 }
       ].map(n => ({ ...n, p: shift(n.p) })),
-      dots: [shift([0, 0])], grain: [shift([0, capH * 0.6]), shift([0, L - 3])], note
+      dots: [shift([0, 0])], labels: [{ p: shift([0.8, 1.6]), s: 'Shoulder seam' }], grain: [shift([0, capH * 0.6]), shift([0, L - 3])], note
     });
     if (band) pieces.push(rectPiece('Sleeve band', 'Cut 2 · fold lengthwise', hemFit + 2 + 2 * sa, bandH * 2 + 2 * sa));
+    const capLen = polyLen(cap), ease = capLen - AHtot;
+    checks.push(P > 0.15
+      ? { name: 'Sleeve cap to armhole', a: ['Cap', capLen], b: ['Armhole', AHtot], kind: 'gather', note: `${fmtCheck(ease)} gathered into the armhole` }
+      : { name: 'Sleeve cap to armhole', a: ['Cap', capLen], b: ['Armhole', AHtot], kind: 'ease', lo: 0.8, hi: 4.5, note: `${fmtCheck(ease)} of ease, normal for a set-in sleeve` });
   }
 
   // Skirt
@@ -982,7 +1116,7 @@ function draftPattern(d, sa) {
   let cone = null;
   if (fs < Infinity) {
     const TAU = 2 * Math.PI, r1 = q(fs) * 4 / TAU;
-    if (d.silhouette === 'ballgown') { // gathered: top edge cut wider, then gathered to the waist
+    if (d.silhouette === 'ballgown') {
       const cL = q(Ls) * 4, top = Math.min(cL, q(fs) * 4 * 2.2);
       cone = { r1: top / TAU, r2: cL / TAU, gathered: top > q(fs) * 4 * 1.1 };
     } else {
@@ -994,10 +1128,16 @@ function draftPattern(d, sa) {
   }
   const hipDepth = Math.max(0, (G.seamY - B.hipY) * 100);
   const twoPart = fs > 0 && fs < Infinity;
+  const skirtWaist = { front: 0, back: 0 }, skirtSide = { front: 0, back: 0 }, joinSeam = {};
+  let hemCirc = 0;
+  const backCB = info.back.len - info.back.sway - (strapless ? AHd + 3 : NL.bd);
+  const zipRest = 56 - backCB;
   for (const front of [true, false]) {
     const edgeKind = front ? 'fold' : 'seam', edgeSA = front ? 0 : sa;
     const cutTxt = front ? 'Cut 1 on fold' : 'Cut 2 · center-back seam';
-    if (fs > 0) { // fitted part
+    const key = front ? 'front' : 'back';
+    const zipMark = (pc, cbLen) => { if (!front && zipRest > 3 && zipRest < cbLen - 3) { pc.notches.push({ p: [0, zipRest], dir: [0, 1], count: 1 }); pc.labels = [{ p: [1.2, zipRest + 0.3], s: 'Zip ends' }]; } };
+    if (fs > 0) {
       const Lf = Math.min(fs, Ls);
       const dartW = clamp((q(Math.min(hipDepth, Lf)) - q(0)) * 0.4, 0, 3);
       const dartLen = front ? 9 : 13;
@@ -1016,12 +1156,19 @@ function draftPattern(d, sa) {
         { pts: side, sa, kind: 'seam' },
         { pts: [side[side.length - 1], [0, Lf]], sa: isHem ? hemSA : sa, kind: isHem ? 'hem' : 'seam' }
       ];
-      const x0 = q(0) * 0.45, marks = [];
-      if (dartW > 0.3 && hipDepth > 4) marks.push({ k: 'dart', pts: [[x0 - dartW / 2, 0], [x0, dartLen], [x0 + dartW / 2, 0]] });
+      const hasDart = dartW > 0.3 && hipDepth > 4;
+      const x0 = clamp(front ? BP[0] : backDartX, q(0) * 0.25, q(0) * 0.65), marks = [];
+      if (hasDart) marks.push({ k: 'dart', pts: [[x0 - dartW / 2, 0], [x0, dartLen], [x0 + dartW / 2, 0]] });
+      skirtWaist[key] = side[0][0] - (hasDart ? dartW : 0);
+      const sideLen = polyLen(side);
+      skirtSide[key] += sideLen;
+      if (isHem) hemCirc = side[side.length - 1][0] * 4; else joinSeam.yoke = side[side.length - 1][0];
       const nm = twoPart ? (d.silhouette === 'mermaid' ? 'Skirt' : 'Skirt yoke') : 'Skirt';
-      pieces.push({ name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks, notches: [], grain: [[Math.max(4, q(0) * 0.2), 4], [Math.max(4, q(0) * 0.2), Lf - 3]] });
+      const pc = { name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks, notches: [{ ...pointAtLen(side, clamp(Math.min(15, sideLen * 0.5) / sideLen, 0.05, 0.95)), count: front ? 1 : 2 }], grain: [[Math.max(4, q(0) * 0.15), 4], [Math.max(4, q(0) * 0.15), Lf - 3]] };
+      zipMark(pc, Lf);
+      pieces.push(pc);
     }
-    if (fs < Infinity) { // flared part, developed from a cone
+    if (fs < Infinity) {
       const dv = Ls - fs, r1 = cone.r1, r2 = Math.max(cone.r2, r1 + 0.5);
       const l = Math.hypot(dv, r2 - r1), Rt = r1 * l / (r2 - r1), Rb = Rt + l;
       const phi = (Math.PI / 2) * (r2 - r1) / l;
@@ -1035,28 +1182,54 @@ function draftPattern(d, sa) {
         { pts: [topArc[n], botArc[n]], sa, kind: 'seam' },
         { pts: botArc.slice().reverse(), sa: Math.min(hemSA, 1.5), kind: 'hem' }
       ];
+      const sideEdge = [topArc[n], botArc[n]];
+      skirtSide[key] += l; hemCirc = polyLen(botArc) * 4;
+      if (fs === 0) skirtWaist[key] = polyLen(topArc); else joinSeam.flare = polyLen(topArc);
       const nm = twoPart ? (d.silhouette === 'mermaid' ? 'Flare panel' : 'Skirt flare') : 'Skirt';
       const gx = Math.min(P(Rt, phi * 0.3)[0], 12);
-      pieces.push({ name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks: [], notches: [], grain: [[Math.max(gx, 4), 3], [Math.max(gx, 4), l - 4]], circle: phi > 1.2, note: cone.gathered ? 'Gather top edge to fit waist' : '' });
+      const pc = { name: `${nm} ${front ? 'front' : 'back'}`, cut: cutTxt, fold: front, ...assemble(segs), marks: [], notches: [{ ...pointAtLen(sideEdge, clamp(Math.min(15, l * 0.4) / l, 0.05, 0.95)), count: front ? 1 : 2 }], grain: [[Math.max(gx, 4), 3], [Math.max(gx, 4), l - 4]], circle: phi > 1.2, note: cone.gathered ? 'Gather top edge to fit waist' : '' };
+      if (fs === 0) zipMark(pc, l);
+      pieces.push(pc);
       if (cone.gathered && front) notes.push('Gather the top of each skirt piece to fit the bodice waist. A petticoat gives the ballgown its full shape.');
       if (phi > 1.2 && front) notes.push('The skirt is close to a full circle. Cut each layer separately if it is wider than your fabric.');
     }
   }
+  const bodiceWaist = (polyLen(info.front.waist) - info.front.dartSeam) + (polyLen(info.back.waist) - info.back.dartSeam);
+  const skirtTop = skirtWaist.front + skirtWaist.back;
+  checks.push(cone && cone.gathered && fs === 0
+    ? { name: 'Waist seam', a: ['Bodice', bodiceWaist], b: ['Skirt', skirtTop], kind: 'gather', note: `Skirt is gathered to fit (${(skirtTop / bodiceWaist).toFixed(1)}× fullness)` }
+    : { name: 'Waist seam', a: ['Bodice', bodiceWaist], b: ['Skirt', skirtTop], tol: 0.6, note: 'Half the garment, with darts sewn' });
+  checks.push({ name: 'Skirt side seams', a: ['Front', skirtSide.front / (twoPart ? 1 : 1)], b: ['Back', skirtSide.back], tol: 0.3 });
+  if (twoPart) checks.push(cone.gathered ? { name: 'Yoke to skirt', a: ['Yoke', joinSeam.yoke], b: ['Skirt', joinSeam.flare], kind: 'gather', note: 'Gathered' } : { name: d.silhouette === 'mermaid' ? 'Skirt to flare panel' : 'Yoke to flare', a: ['Upper', joinSeam.yoke], b: ['Lower', joinSeam.flare], tol: 0.4, note: 'Each quarter' });
+  for (const c of checks) {
+    const diff = c.a[1] - c.b[1];
+    c.diff = diff;
+    c.ok = c.kind === 'gather' ? true : c.kind === 'ease' ? diff >= c.lo && diff <= c.hi : Math.abs(diff) <= c.tol;
+  }
+  const finished = {
+    bust: 2 * (BqF + BqB),
+    waist: 2 * ((info.front.seamSide - info.front.dartSeam) + (info.back.seamSide - info.back.dartSeam)),
+    waistLabel: d.waist === 'empire' ? 'Under bust (seam)' : d.waist === 'drop' ? 'Low waist (seam)' : 'Waist',
+    hip: hipDepth < Ls ? 4 * q(hipDepth) : null,
+    hem: hemCirc,
+    length: backCB + Ls,
+    sleeve: sleeveLen
+  };
 
-  // finish pieces: cutting line, bounds, ids
   pieces.forEach((p, i) => {
     p.id = String.fromCharCode(65 + i);
     p.cutPts = offsetPoly(p.pts, p.offs);
     if (p.fold) p.cutPts = p.cutPts.map(c => [Math.max(0, c[0]), c[1]]);
     p.box = bbox(p.cutPts);
   });
-  return { pieces, G, notes, skirtLen: Ls, bodiceLen: frontLen };
+  return { pieces, G, notes, checks, finished, X, skirtLen: Ls, bodiceLen: frontLen };
 
   function rectPiece(name, cut, w, h) {
     const pts = [[0, 0], [w, 0], [w, h], [0, h]];
     return { name, cut, fold: false, pts, offs: [0, 0, 0, 0], kinds: ['seam', 'seam', 'seam', 'seam'], marks: [], notches: [], grain: [[w / 2 - 4, h / 2], [w / 2 + 4, h / 2]], grainHorizontal: true, sewn: true };
   }
 }
+const fmtCheck = (cm) => typeof fmtLen === 'function' ? fmtLen(Math.abs(cm)) : Math.abs(cm).toFixed(1) + ' cm';
 
 function layoutPieces(pat, fabricW) {
   const Wf = fabricW / 2, gap = 2;
@@ -1220,7 +1393,13 @@ function sanitize(d) {
   out.print = p;
   const m = { ...base.measurements, ...(d && d.measurements || {}) };
   for (const [k, , lo, hi] of MEAS_FIELDS) m[k] = clamp(Number(m[k]) || base.measurements[k], lo, hi);
+  for (const [k, , lo, hi] of EXTRA_FIELDS) { const v = m[k]; m[k] = v === null || v === undefined || v === '' || !isFinite(Number(v)) ? null : clamp(Number(v), lo, hi); }
   out.measurements = m;
+  const ad = { shoulders: 'average', sway: 0, armhole: 0, ...((d && d.adj) || {}) };
+  if (!['square', 'average', 'sloping'].includes(ad.shoulders)) ad.shoulders = 'average';
+  ad.sway = [0, 1, 2].includes(Number(ad.sway)) ? Number(ad.sway) : 0;
+  ad.armhole = clamp(Number(ad.armhole) || 0, -3, 3);
+  out.adj = { shoulders: ad.shoulders, sway: ad.sway, armhole: ad.armhole };
   out.units = out.units === 'cm' ? 'cm' : 'in';
   const sp = SLEEVE_PRESETS[out.sleeves] || SLEEVE_PRESETS.cap, sv = { ...sp, ...((d && d.sleeve) || {}) };
   for (const k of SLEEVE_KEYS) sv[k] = clamp(Number(sv[k]), k === 'length' ? 8 : 0, 100) || (k === 'length' ? sp.length : 0);
@@ -1390,6 +1569,7 @@ function render() {
     el.step = design.units === 'cm' ? '0.5' : '0.25';
   }
   $$('#measGrid label span').forEach((s, i) => s.textContent = `${MEAS_FIELDS[i][1]} (${design.units})`);
+  if (typeof renderFitExtras === 'function') renderFitExtras();
   const E = EASE[design.fit];
   $('#easeHint').textContent = `Adds ${fmtLen(E.b)} at the bust, ${fmtLen(E.w)} at the waist and ${fmtLen(E.h)} at the hip.`;
   $('#undoBtn').disabled = !hist.past.length; $('#redoBtn').disabled = !hist.future.length;
@@ -1778,7 +1958,7 @@ function pieceItems(it, ox, oy, forPrint) {
   const n = p.pts.length;
   for (let i = 0; i <= n; i++) {
     const kind = p.kinds[i % n];
-    if (i < n && kind !== 'fold' && !p.sewn) { if (!run.length) run.push(X(p.pts[i])); run.push(X(p.pts[(i + 1) % n])); }
+    if (i < n && kind !== 'fold' && kind !== 'finish' && !p.sewn) { if (!run.length) run.push(X(p.pts[i])); run.push(X(p.pts[(i + 1) % n])); }
     else if (run.length) { items.push({ k: 'poly', pts: run, cls: 'stitch' }); run = []; }
   }
   if (run.length) items.push({ k: 'poly', pts: run, cls: 'stitch' });
@@ -1791,25 +1971,27 @@ function pieceItems(it, ox, oy, forPrint) {
     }
   }
   for (const dt of p.dots || []) { const q = X(dt); items.push({ k: 'dot', x: q[0], y: q[1], r: 0.35 }); }
+  for (const lb of p.labels || []) { const q = X(lb.p); items.push({ k: 'text', x: q[0], y: q[1], s: lb.s, size: forPrint ? 0.4 : 0.7, cls: 'muted' }); }
   // grainline
   const [g0, g1] = p.grain.map(X), dx = g1[0] - g0[0], dy = g1[1] - g0[1], gl = Math.hypot(dx, dy) || 1, ux = dx / gl, uy = dy / gl, ah = 1.2;
   items.push({ k: 'poly', pts: [g0, g1], cls: 'grain' });
   for (const [tip, sgn] of [[g0, 1], [g1, -1]]) items.push({ k: 'poly', pts: [tip, [tip[0] + sgn * ux * ah - uy * ah * 0.4, tip[1] + sgn * uy * ah + ux * ah * 0.4], [tip[0] + sgn * ux * ah + uy * ah * 0.4, tip[1] + sgn * uy * ah - ux * ah * 0.4]], closed: true, cls: 'arrow' });
   // fold bracket
   if (p.fold) {
-    const ys = p.pts.filter((q, i) => p.kinds[i] === 'fold').map(q => q[1]);
-    const y0 = Math.min(...ys) + 3, y1 = Math.max(...p.pts.map(q => q[1])) - 3, bx = 2.2;
+    const ys = []; p.pts.forEach((q, i) => { if (p.kinds[i] === 'fold') ys.push(q[1], p.pts[(i + 1) % p.pts.length][1]); });
+    const y0 = Math.min(...ys) + 2, y1 = Math.max(...ys) - 2, bx = 2.2;
     const mid = (y0 + y1) / 2, span = Math.min(14, (y1 - y0) * 0.6);
     items.push({ k: 'poly', pts: [X([0.2, mid - span / 2]), X([bx, mid - span / 2]), X([bx, mid + span / 2]), X([0.2, mid + span / 2])], cls: 'fold' });
     items.push({ k: 'text', x: X([bx + 1.4, mid])[0], y: X([bx + 1.4, mid])[1], s: 'PLACE ON FOLD', size: 0.9, rot: -90, anchor: 'middle', cls: 'pin' });
   }
   // label
   const bb = bbox(p.pts), w = bb.w, cxl = (p.fold || /front|back/.test(p.name)) ? Math.max(bb.x0 + w * 0.62, 6) : bb.x0 + w / 2;
-  const fs = forPrint ? clamp(Math.min(w, bb.h) / 14, 0.45, 1.1) : clamp(Math.min(w, bb.h) / 9, 0.7, 2.2), cy = bb.y0 + bb.h * (p.name.startsWith('Skirt') || p.name.startsWith('Flare') ? 0.45 : 0.62);
-  const L0 = X([cxl, cy]);
+  const fs = Math.min(forPrint ? clamp(Math.min(w, bb.h) / 14, 0.45, 1.1) : clamp(Math.min(w, bb.h) / 9, 0.7, 2.2), (p.labelAt ? 0.6 : 0.85) * w / (p.name.length * 0.55)), cy = bb.y0 + bb.h * (p.name.startsWith('Skirt') || p.name.startsWith('Flare') ? 0.45 : 0.62);
+  const L0 = X(p.labelAt || [cxl, cy]);
   items.push({ k: 'text', x: L0[0], y: L0[1] - fs * 1.4, s: p.id, size: fs * 1.9, anchor: 'middle', cls: 'pid' });
   items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 0.4, s: p.name, size: fs, anchor: 'middle', bold: true });
-  items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 1.7, s: p.cut + (p.note ? ' · ' + p.note : ''), size: fs * 0.72, anchor: 'middle', cls: 'muted' });
+  items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 1.7, s: p.cut, size: fs * 0.72, anchor: 'middle', cls: 'muted' });
+  if (p.note) items.push({ k: 'text', x: L0[0], y: L0[1] + fs * 2.6, s: p.note, size: fs * 0.72, anchor: 'middle', cls: 'muted' });
   return items;
 }
 function sheetItems(lay, pat, forPrint) {
@@ -1822,10 +2004,14 @@ function sheetItems(lay, pat, forPrint) {
     let y = 1.6;
     items.push({ k: 'text', x: 0.5, y, s: d.name, size: 0.8, bold: true }); y += 0.9;
     items.push({ k: 'text', x: 0.5, y, s: 'Muslin Studio sewing pattern', size: 0.42, cls: 'muted' }); y += 1;
-    const ms = MEAS_FIELDS.map(([k, lab]) => `${lab} ${u === 'cm' ? Math.round(mm[k] * 10) / 10 + ' cm' : (Math.round(mm[k] / CM_PER_IN * 4) / 4) + ' in'}`).join(' · ');
+    const plain = (cm) => u === 'cm' ? Math.round(cm * 10) / 10 + ' cm' : (Math.round(cm / CM_PER_IN * 4) / 4) + ' in';
+    const ms = [...MEAS_FIELDS, ...EXTRA_FIELDS].filter(([k]) => mm[k] != null).map(([k, lab]) => `${lab} ${plain(mm[k])}`).join(' · ');
+    const fin = lastPattern.finished;
+    const finTxt = `Finished garment: bust ${plain(fin.bust)}, ${fin.waistLabel.toLowerCase()} ${plain(fin.waist)}${fin.hip ? ', hip ' + plain(fin.hip) : ''}, back neck to hem ${plain(fin.length)}.`;
     const lines = [
       ...wrap(`${labelOf('silhouette', d.silhouette)}, ${labelOf('neckline', d.neckline)} neckline, ${labelOf('sleeves', d.sleeves)} sleeves, ${labelOf('length', d.length)} length, ${labelOf('waist', d.waist)} waist.`, 76),
       ...wrap('Measurements: ' + ms, 76),
+      ...wrap(finTxt, 76),
       ...wrap(`Seam allowance ${patOpts.sa} cm is included at the cutting line; the dashed line is the stitching line. Fabric: ${lastLayout.yards} yd (${lastLayout.meters} m) of ${fabricIn()} in wide.`, 76)
     ];
     for (const l of lines) { items.push({ k: 'text', x: 0.5, y, s: l, size: 0.36 }); y += 0.58; }
@@ -1875,13 +2061,27 @@ function renderPatterns() {
   lastPattern = pat; lastLayout = lay;
   $('#patTitle').textContent = design.name;
   $('#patSummary').textContent = `${pat.pieces.length} pieces · bodice ${fmtLen(pat.bodiceLen)} from shoulder to waist seam at center front · skirt ${fmtLen(pat.skirtLen)} from waist seam to hem.`;
-  $('#pieceList').innerHTML = pat.pieces.map(p => `<li><span class="pid">${p.id}</span><span>${p.name}</span><span class="cut">${p.cut}</span></li>`).join('');
-  $('#yardage').innerHTML = `${lay.yards} yd<small>${lay.meters} m of ${fabricIn()}-inch fabric, folded selvage to selvage, plus 10% for shrinkage and squaring. Add more for matching stripes or one-way prints.</small>`;
+  renderPatternChecks(pat);
+  $('#pieceList').innerHTML = pat.pieces.map(p => `<li><span class="pid">${p.id}</span><span>${p.name}</span><span class="cut">${p.cut}${p.note ? '<br>' + p.note : ''}</span></li>`).join('');
+  $('#yardage').innerHTML = `${fracIn(lay.yards)} yd<small>${lay.meters} m of ${fabricIn()}-inch fabric, folded selvage to selvage, plus 10% for shrinkage and squaring. Add more for matching stripes or one-way prints.</small>`;
   const warn = [...pat.notes]; if (lay.over) warn.push(`Some pieces are wider than the folded fabric. Choose a wider fabric, or cut those pieces on single layer.`);
   $('#patWarn').hidden = !warn.length; $('#patWarn').textContent = warn.join(' ');
   $$('#fabWSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.w === patOpts.fabricW));
   $$('#saSeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.sa === patOpts.sa));
   drawSheet();
+}
+function renderPatternChecks(pat) {
+  const f = pat.finished, m = design.measurements, row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  const vsBody = (fin, body) => `${fmtLen(fin)} <span style="color:var(--muted)">(${fmtLen(fin - body)} ease)</span>`;
+  $('#finList').innerHTML = [
+    row('Bust', vsBody(f.bust, m.bust)),
+    row(f.waistLabel, f.waistLabel === 'Waist' ? vsBody(f.waist, m.waist) : fmtLen(f.waist)),
+    f.hip ? row('Hip', vsBody(f.hip, m.hip)) : '',
+    row('Hem circumference', fmtLen(f.hem)),
+    row('Back neck to hem', fmtLen(f.length)),
+    f.sleeve ? row('Sleeve, shoulder to hem', fmtLen(f.sleeve)) : ''
+  ].join('');
+  $('#checkList').innerHTML = pat.checks.map(c => `<li><span class="st ${c.ok ? 'ok' : 'bad'}">${c.ok ? '✓' : '!'}</span><span>${c.name}${c.ok ? '' : ' don’t match'}<small>${c.a[0]} ${fmtLen(c.a[1])} · ${c.b[0]} ${fmtLen(c.b[1])}${c.note ? ' · ' + c.note : ''}</small></span></li>`).join('');
 }
 function drawSheet() {
   if (!lastLayout) return;
@@ -2123,15 +2323,61 @@ const MEAS_HOW = {
   shoulder: 'Across your back from one shoulder point to the other. The shoulder point is the bony tip at the outer end of each shoulder.',
   backWaist: 'From the bone at the base of the back of your neck, straight down your spine to your waist.',
   arm: 'From the shoulder point, over a slightly bent elbow, down to the wrist bone.',
-  upperArm: 'Around the fullest part of your upper arm, with your arm relaxed at your side.'
+  upperArm: 'Around the fullest part of your upper arm, with your arm relaxed at your side.',
+  highBust: 'Around your chest directly under your arms, above the fullest part of the bust, with the tape level across your back. The difference from your bust sets the bust adjustment.',
+  frontWaist: 'From the point where your shoulder meets your neck, down over the fullest part of the bust to your waist.',
+  bustHeight: 'From the point where your shoulder meets your neck, straight down to your bust point, the fullest point of the bust.',
+  bustSpan: 'Straight across from one bust point to the other.',
+  neck: 'Around the base of your neck, where a necklace chain would sit.',
+  wrist: 'Around your wrist, just above the wrist bone.',
+  backWidth: 'Across your back between the creases where your arms meet your body, about 4 in (10 cm) below the base of your neck.'
 };
 function showMeasureHelp(k) {
   $$('.mline').forEach(g => g.classList.toggle('on', g.dataset.k === k));
-  $('#mgTitle').textContent = MEAS_FIELDS.find(f => f[0] === k)[1];
+  $('#mgTitle').textContent = [...MEAS_FIELDS, ...EXTRA_FIELDS].find(f => f[0] === k)[1];
   $('#mgText').textContent = MEAS_HOW[k];
 }
 for (const [k] of MEAS_FIELDS) { const el = $('#m_' + k); ['focus', 'mouseenter'].forEach(ev => el.addEventListener(ev, () => showMeasureHelp(k))); }
 showMeasureHelp('bust');
+/* Optional measurements and fit adjustments */
+const extraGrid = $('#extraGrid');
+for (const [k, lab] of EXTRA_FIELDS) {
+  const l = document.createElement('label'); l.innerHTML = `<span>${lab}</span><input type="number" inputmode="decimal" id="m_${k}">`;
+  extraGrid.appendChild(l);
+  const el = l.querySelector('input');
+  el.addEventListener('change', () => {
+    const raw = el.value.trim() === '' ? null : parseFloat(el.value);
+    if (raw !== null && !isFinite(raw)) { render(); return; }
+    update('measurements.' + k, raw === null ? null : design.units === 'cm' ? raw : raw * CM_PER_IN);
+  });
+  ['focus', 'mouseenter'].forEach(ev => el.addEventListener(ev, () => showMeasureHelp(k)));
+}
+$$('#shSeg button').forEach(b => b.addEventListener('click', () => update('adj.shoulders', b.dataset.v)));
+$$('#swaySeg button').forEach(b => b.addEventListener('click', () => update('adj.sway', +b.dataset.v)));
+const ahFmt = (v) => v === 0 ? 'Standard' : v < 0 ? `Raised ${fmtLen(-v)}` : `Lowered ${fmtLen(v)}`;
+$('#ahAdj').addEventListener('input', (e) => { $('#ahVal').textContent = ahFmt(+e.target.value); });
+$('#ahAdj').addEventListener('change', (e) => update('adj.armhole', +e.target.value));
+function renderFitExtras() {
+  const est = measureEstimates(design.measurements), toU = (cm) => design.units === 'cm' ? Math.round(cm * 10) / 10 : Math.round(cm / CM_PER_IN * 4) / 4;
+  for (const [k, lab] of EXTRA_FIELDS) {
+    const el = $('#m_' + k); if (!el) continue;
+    if (document.activeElement !== el) el.value = design.measurements[k] == null ? '' : toU(design.measurements[k]);
+    el.placeholder = '≈ ' + toU(est[k]); el.step = design.units === 'cm' ? '0.5' : '0.25';
+    el.previousElementSibling.textContent = `${lab} (${design.units})`;
+  }
+  $$('#shSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === design.adj.shoulders));
+  $$('#swaySeg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === design.adj.sway));
+  if (document.activeElement !== $('#ahAdj')) $('#ahAdj').value = design.adj.armhole;
+  $('#ahVal').textContent = ahFmt(design.adj.armhole);
+  const m = design.measurements;
+  if (m.highBust == null) $('#bustAdjHint').textContent = 'The bodice is drafted for an average (B) cup. Add your high bust under More measurements and the front adjusts to your bust automatically.';
+  else {
+    const diffIn = Math.max(0, (m.bust - m.highBust) / CM_PER_IN), cups = ['AA', 'A', 'B', 'C', 'D', 'DD', 'F', 'G', 'H'];
+    $('#bustAdjHint').textContent = `Your bust is ${fmtLen(m.bust - m.highBust)} larger than your high bust, so the front is drafted for a ${cups[clamp(Math.round(diffIn), 0, 8)]} cup${diffIn > 8.5 ? ' or larger' : ''}.`;
+  }
+}
+renderFitExtras();
+
 
 /* Save an image of the dress */
 $('#shotBtn').addEventListener('click', () => {
